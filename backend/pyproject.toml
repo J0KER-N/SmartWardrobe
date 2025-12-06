@@ -1,0 +1,41 @@
+[project]
+name = "smart-wardrobe-backend"
+version = "0.1.0"
+description = "Backend service for the smart wardrobe system."
+requires-python = ">=3.10"
+readme = "README.md"
+authors = [
+  { name = "Smart Wardrobe Team" }
+]
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "sqlalchemy>=2.0.0",
+  "alembic>=1.13.0",
+  "pydantic[email]>=2.7.0",
+  "passlib[bcrypt]>=1.7.4",
+  "python-jose[cryptography]>=3.3.0",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27.0",
+  "pillow>=10.3.0",
+  "redis>=5.0.0",
+  "tenacity>=8.3.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-asyncio",
+  "ruff",
+  "mypy"
+]
+
+[tool.uvicorn]
+host = "0.0.0.0"
+port = 8000
+reload = true
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
