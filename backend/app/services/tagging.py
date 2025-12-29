@@ -1,18 +1,20 @@
-from typing import Any, Dict
+import logging
+from fastapi import UploadFile
 
-from . import ai_clients
+from ..services.ai_clients import extract_garment_tags
 
+logger = logging.getLogger(__name__)
 
-async def auto_tag_image(image_bytes: bytes) -> Dict[str, Any]:
-    image_b64 = ai_clients.to_base64(image_bytes)
-    tags = await ai_clients.extract_garment_tags(image_b64)
-    parsed = {
-        "category": tags.get("category"),
-        "scene": tags.get("scene"),
-        "style": tags.get("style"),
-        "season": tags.get("season"),
-        "colorway": tags.get("colorway"),
-        "extra": tags,
-    }
-    return parsed
-
+def auto_tag_garment(file: UploadFile) -> list:
+    """自动识别衣物标签"""
+    try:
+        # 读取文件数据
+        file_data = file.file.read()
+        # 调用AI提取标签
+        tags = extract_garment_tags(file_data)
+        # 重置文件指针（避免后续读取失败）
+        file.file.seek(0)
+        return tags
+    except Exception as e:
+        logger.error(f"自动标签识别失败: {str(e)}")
+        return []

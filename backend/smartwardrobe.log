@@ -1,0 +1,371 @@
+2025-12-22 16:16:43,922 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:16:43,941 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:16:44,004 - app.main - INFO - 数据库表初始化完成
+2025-12-22 16:19:26,425 - app.main - INFO - 应用已关闭
+2025-12-22 16:22:02,926 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:22:02,945 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:22:02,949 - app.main - INFO - 数据库表初始化完成
+2025-12-22 16:23:20,905 - app.main - INFO - 应用已关闭
+2025-12-22 16:25:30,418 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:25:30,439 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:25:30,442 - app.main - INFO - 数据库表初始化完成
+2025-12-22 16:25:30,444 - app.main - INFO - 应用已关闭
+2025-12-22 16:27:42,456 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:27:42,474 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:27:42,477 - app.main - INFO - 数据库表初始化完成
+2025-12-22 16:27:42,478 - app.main - INFO - 应用已关闭
+2025-12-22 16:28:55,786 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:28:55,808 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:28:55,810 - app.main - INFO - 数据库表初始化完成
+2025-12-22 16:28:55,811 - app.main - INFO - 应用已关闭
+2025-12-22 16:31:12,854 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:31:12,872 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:31:12,874 - app.main - INFO - 数据库表初始化完成
+2025-12-22 16:55:00,244 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:55:00,264 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:55:00,267 - app.main - INFO - 数据库表初始化完成
+2025-12-22 16:58:11,862 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 16:58:11,880 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 16:58:11,883 - app.main - INFO - 数据库表初始化完成
+2025-12-22 17:38:29,419 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 17:38:29,444 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 17:38:29,446 - app.main - INFO - 数据库表初始化完成
+2025-12-22 17:38:29,448 - app.main - INFO - 应用已关闭
+2025-12-22 17:44:45,778 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 17:44:45,804 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 17:44:45,807 - app.main - INFO - 数据库表初始化完成
+2025-12-22 17:45:16,060 - app.security - ERROR - JWT 验证失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 67, in verify_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+2025-12-22 17:45:16,081 - app.security - ERROR - JWT 验证失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 67, in verify_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+2025-12-22 18:20:39,280 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 18:20:39,298 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 18:20:39,301 - app.main - INFO - 数据库表初始化完成
+2025-12-22 18:20:39,303 - app.main - INFO - 应用已关闭
+2025-12-22 18:21:35,157 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 18:21:35,175 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 18:21:35,178 - app.main - INFO - 数据库表初始化完成
+2025-12-22 18:21:35,179 - app.main - INFO - 应用已关闭
+2025-12-22 18:21:41,366 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 18:21:41,384 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 18:21:41,386 - app.main - INFO - 数据库表初始化完成
+2025-12-22 18:25:28,679 - app.security - ERROR - JWT 验证失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 67, in verify_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+2025-12-22 18:25:28,684 - app.security - ERROR - JWT 验证失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 67, in verify_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+2025-12-22 18:28:40,356 - app.security - ERROR - JWT 验证失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 67, in verify_token
+    token = token.strip() if isinstance(token, str) else token
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+2025-12-22 18:28:40,371 - app.security - ERROR - JWT 验证失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 67, in verify_token
+    token = token.strip() if isinstance(token, str) else token
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+2025-12-22 18:28:51,269 - app.main - INFO - 应用已关闭
+2025-12-22 18:28:55,285 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 18:28:55,303 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 18:28:55,305 - app.main - INFO - 数据库表初始化完成
+2025-12-22 18:28:55,306 - app.main - INFO - 应用已关闭
+2025-12-22 18:28:59,530 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 18:28:59,550 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 18:28:59,551 - app.main - INFO - 数据库表初始化完成
+2025-12-22 18:29:26,976 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-22 18:29:26,977 - app.security - ERROR - 二次解析已过期 token 失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 68, in verify_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 106, in verify_token
+    unverified = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM], options={"verify_exp": False})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 490, in _validate_claims
+    _validate_sub(claims, subject=subject)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 394, in _validate_sub
+    raise JWTClaimsError("Subject must be a string.")
+jose.exceptions.JWTClaimsError: Subject must be a string.
+2025-12-22 18:29:26,983 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-22 18:29:26,983 - app.security - ERROR - 二次解析已过期 token 失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 68, in verify_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 106, in verify_token
+    unverified = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM], options={"verify_exp": False})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 490, in _validate_claims
+    _validate_sub(claims, subject=subject)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 394, in _validate_sub
+    raise JWTClaimsError("Subject must be a string.")
+jose.exceptions.JWTClaimsError: Subject must be a string.
+2025-12-22 18:32:02,113 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-22 18:32:02,113 - app.security - ERROR - 二次解析已过期 token 失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 68, in verify_token
+    token = token.strip() if isinstance(token, str) else token
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 106, in verify_token
+    try:
+         
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 490, in _validate_claims
+    _validate_sub(claims, subject=subject)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 394, in _validate_sub
+    raise JWTClaimsError("Subject must be a string.")
+jose.exceptions.JWTClaimsError: Subject must be a string.
+2025-12-22 18:32:02,129 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-22 18:32:02,129 - app.security - ERROR - 二次解析已过期 token 失败
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 68, in verify_token
+    token = token.strip() if isinstance(token, str) else token
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 481, in _validate_claims
+    _validate_exp(claims, leeway=leeway)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 314, in _validate_exp
+    raise ExpiredSignatureError("Signature has expired.")
+jose.exceptions.ExpiredSignatureError: Signature has expired.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\app\security.py", line 106, in verify_token
+    try:
+         
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 157, in decode
+    _validate_claims(
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 490, in _validate_claims
+    _validate_sub(claims, subject=subject)
+  File "C:\Users\23708\AppData\Roaming\Python\Python312\site-packages\jose\jwt.py", line 394, in _validate_sub
+    raise JWTClaimsError("Subject must be a string.")
+jose.exceptions.JWTClaimsError: Subject must be a string.
+2025-12-22 18:32:27,969 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 18:32:27,988 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 18:32:27,992 - app.main - INFO - 数据库表初始化完成
+2025-12-22 18:32:51,727 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-22 18:32:51,729 - app.services.ai_clients - INFO - 调用FashionCLIP标签识别服务
+2025-12-22 18:32:52,132 - app.services.ai_clients - ERROR - FashionCLIP调用失败: 连接失败: [Errno 11001] getaddrinfo failed
+2025-12-22 18:32:52,164 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-22 18:32:52,177 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-22 18:34:49,524 - app.main - INFO - 应用已关闭
+2025-12-22 18:34:51,140 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-22 18:34:51,170 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-22 18:34:51,174 - app.main - INFO - 数据库表初始化完成
+2025-12-23 20:06:40,018 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-23 20:06:40,032 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-23 20:06:40,032 - app.main - INFO - recommendations 路由已禁用（ENABLE_RECOMMENDATIONS=False）
+2025-12-23 20:06:40,053 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-23 20:06:40,053 - app.main - INFO - 数据库表初始化完成
+2025-12-23 20:07:53,220 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-23 20:07:53,220 - app.services.ai_clients - INFO - 调用FashionCLIP标签识别服务
+2025-12-23 20:07:53,606 - app.services.ai_clients - ERROR - FashionCLIP调用失败: 连接失败: [Errno 11001] getaddrinfo failed
+2025-12-23 20:07:53,635 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-23 20:41:19,420 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-23 20:41:19,420 - app.services.ai_clients - INFO - 调用FashionCLIP标签识别服务
+2025-12-23 20:41:19,674 - app.services.ai_clients - ERROR - FashionCLIP调用失败: 连接失败: [Errno 11001] getaddrinfo failed
+2025-12-23 20:41:19,737 - app.main - INFO - 应用已关闭
+2025-12-23 20:41:21,224 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-23 20:41:21,224 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-23 20:41:21,224 - app.main - INFO - recommendations 路由已禁用（ENABLE_RECOMMENDATIONS=False）
+2025-12-23 20:41:21,239 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-23 20:41:21,239 - app.main - INFO - 数据库表初始化完成
+2025-12-23 20:41:21,255 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-23 22:10:22,047 - app.main - INFO - 应用已关闭
+2025-12-23 22:10:23,334 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-23 22:10:23,334 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-23 22:10:23,334 - app.main - INFO - recommendations 路由已禁用（ENABLE_RECOMMENDATIONS=False）
+2025-12-23 22:10:23,350 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-23 22:10:23,350 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:05:13,048 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:05:13,058 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:05:13,067 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:05:13,074 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:09:56,294 - app.main - INFO - 应用已关闭
+2025-12-25 18:09:57,815 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:09:57,823 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:09:57,835 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:09:57,837 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:09:59,227 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:09:59,235 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:09:59,248 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:09:59,251 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:14:56,316 - app.main - INFO - 应用已关闭
+2025-12-25 18:14:57,839 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:14:57,847 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:14:57,858 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:14:57,860 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:14:59,310 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:14:59,323 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:14:59,339 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:14:59,341 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:22:38,609 - app.main - INFO - 应用已关闭
+2025-12-25 18:22:40,469 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:22:40,481 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:22:40,498 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:22:40,500 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:22:42,319 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:22:42,333 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:22:42,351 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:22:42,354 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:23:18,112 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-25 18:23:19,244 - app.services.weather - ERROR - 获取天气失败: Client error '401 Unauthorized' for url 'https://api.weatherapi.com/v1/current.json?key=replace-with-your-weather-api-key&q=Beijing&aqi=no'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+2025-12-25 18:23:48,412 - app.main - INFO - 应用已关闭
+2025-12-25 18:23:50,581 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:23:50,596 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:23:50,631 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:23:50,633 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:23:50,649 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-25 18:23:50,670 - app.services.weather - WARNING - 天气API密钥未配置或为占位符，返回模拟数据
+2025-12-25 18:24:25,332 - app.main - INFO - 应用已关闭
+2025-12-25 18:24:27,202 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:24:27,214 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:24:27,227 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:24:27,230 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:24:29,222 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:24:29,236 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:24:29,249 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:24:29,251 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:25:16,702 - app.main - INFO - 应用已关闭
+2025-12-25 18:25:18,390 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:25:18,408 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:25:18,422 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:25:18,425 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:25:20,318 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:25:20,332 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:25:20,350 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:25:20,354 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:26:59,211 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:26:59,219 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:26:59,230 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:26:59,234 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:27:25,658 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-25 18:27:25,660 - app.services.weather - WARNING - 天气API密钥未配置或为占位符，返回模拟数据
+2025-12-25 18:29:25,432 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:29:25,441 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:29:25,451 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:29:25,455 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:30:07,679 - app.main - INFO - 应用已关闭
+2025-12-25 18:33:23,771 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:33:23,779 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:33:23,789 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:33:23,791 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:33:36,767 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-25 18:33:36,769 - app.services.weather - WARNING - 天气API密钥未配置或为占位符，返回模拟数据
+2025-12-25 18:34:42,704 - app.main - INFO - 应用已关闭
+2025-12-25 18:34:44,484 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:34:44,498 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:34:44,511 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:34:44,515 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:34:44,524 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-25 18:34:44,543 - app.services.weather - WARNING - 天气API密钥未配置或为占位符，返回模拟数据
+2025-12-25 18:36:19,039 - app.main - INFO - 应用已关闭
+2025-12-25 18:36:20,739 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:36:20,749 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:36:20,765 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:36:20,769 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:36:20,778 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-25 18:36:20,788 - app.services.weather - WARNING - 天气API密钥未配置或为占位符，返回模拟数据
+2025-12-25 18:36:20,790 - app.services.ai_clients - INFO - 调用百川大模型生成穿搭文案
+2025-12-25 18:38:13,768 - app.main - INFO - 应用已关闭
+2025-12-25 18:38:15,279 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-25 18:38:15,288 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-25 18:38:15,311 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-25 18:38:15,314 - app.main - INFO - 数据库表初始化完成
+2025-12-25 18:38:15,326 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2025-12-25 18:38:15,344 - app.services.weather - WARNING - 天气API密钥未配置或为占位符，返回模拟数据
+2025-12-25 18:38:15,350 - app.services.ai_clients - INFO - 调用百川大模型生成穿搭文案

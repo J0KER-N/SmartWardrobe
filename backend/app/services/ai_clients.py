@@ -1,184 +1,193 @@
-from __future__ import annotations
-
-import base64
-import logging
-from typing import Any, Dict, List
-
 import httpx
-from tenacity import retry, retry_if_exception, retry_if_exception_type, stop_after_attempt, wait_exponential
+import logging
+from typing import Dict, List, Optional
+from pydantic import BaseModel
+import base64
 
 from ..config import get_settings
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-
-class AIClientError(RuntimeError):
-    """Base exception for AI client errors."""
-
+# 自定义异常
+class AIClientError(Exception):
+    """AI服务基础异常"""
+    pass
 
 class AIClientTimeoutError(AIClientError):
-    """Raised when AI service request times out."""
-
+    """超时异常"""
+    pass
 
 class AIClientRateLimitError(AIClientError):
-    """Raised when AI service rate limit is exceeded."""
-
+    """限流异常"""
+    pass
 
 class AIClientInvalidRequestError(AIClientError):
-    """Raised when request parameters are invalid."""
+    """请求参数错误"""
+    pass
 
-
-async def _post_json(url: str, payload: dict, headers: dict | None = None, timeout: int = 60) -> dict:
-    """Make POST request to AI service with error handling."""
+# 通用请求工具
+async def _async_post_json(
+    url: str,
+    payload: dict,
+    headers: Optional[dict] = None,
+    timeout: int = 60
+) -> Dict:
+    """异步POST请求（用于高并发场景）"""
     if not url:
-        raise AIClientError("Endpoint is not configured")
-
+        raise AIClientError("AI服务地址未配置")
+    
+    headers = headers or {}
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
             return response.json()
-    except httpx.TimeoutException as e:
-        logger.error(f"AI service timeout: {url}, timeout={timeout}s")
-        raise AIClientTimeoutError(f"Request to {url} timed out after {timeout}s") from e
+    except httpx.TimeoutException:
+        raise AIClientTimeoutError(f"请求超时（{timeout}秒）")
     except httpx.HTTPStatusError as e:
-        status_code = e.response.status_code
-        if status_code == 429:
-            logger.warning(f"AI service rate limit: {url}")
-            raise AIClientRateLimitError(f"Rate limit exceeded for {url}") from e
-        elif status_code in (400, 422):
-            logger.error(f"AI service invalid request: {url}, {e.response.text}")
-            raise AIClientInvalidRequestError(f"Invalid request to {url}: {e.response.text}") from e
+        if e.response.status_code == 429:
+            raise AIClientRateLimitError("请求频率超限")
+        elif e.response.status_code == 400:
+            raise AIClientInvalidRequestError(f"请求参数错误: {e.response.text}")
         else:
-            logger.error(f"AI service error: {url}, status={status_code}, {e.response.text}")
-            raise AIClientError(f"Request failed with status {status_code}: {e.response.text}") from e
+            raise AIClientError(f"服务错误: {e.response.status_code} - {e.response.text}")
     except httpx.RequestError as e:
-        logger.error(f"AI service connection error: {url}, {str(e)}")
-        raise AIClientError(f"Connection error to {url}: {str(e)}") from e
+        raise AIClientError(f"连接失败: {str(e)}")
 
-
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception(
-        lambda e: isinstance(e, (AIClientTimeoutError, AIClientRateLimitError))
-    ),
-)
-async def extract_garment_tags(image_b64: str) -> dict[str, Any]:
-    """Extract garment tags using FashionCLIP model."""
-    if not settings.fashionclip_endpoint:
-        logger.warning("FashionCLIP endpoint not configured")
-        return {}
-
-    if not image_b64 or len(image_b64) < 100:
-        raise AIClientInvalidRequestError("Invalid image data provided")
-
-    payload = {
-        "image_base64": image_b64,
-        "tasks": ["category", "scene", "style", "season", "colorway", "description"],
-    }
-
+def _sync_post_json(
+    url: str,
+    payload: dict,
+    headers: Optional[dict] = None,
+    timeout: int = 60
+) -> Dict:
+    """同步POST请求（兼容同步代码）"""
+    if not url:
+        raise AIClientError("AI服务地址未配置")
+    
+    headers = headers or {}
     try:
-        result = await _post_json(
-            str(settings.fashionclip_endpoint),
-            payload,
-            timeout=settings.fashionclip_timeout,
-        )
-        tags = result.get("tags", {})
-        logger.info(f"Extracted tags: {list(tags.keys())}")
-        return tags
-    except AIClientError as e:
-        logger.error(f"Failed to extract garment tags: {str(e)}")
-        raise
+        with httpx.Client(timeout=timeout) as client:
+            response = client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            return response.json()
+    except httpx.TimeoutException:
+        raise AIClientTimeoutError(f"请求超时（{timeout}秒）")
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            raise AIClientRateLimitError("请求频率超限")
+        elif e.response.status_code == 400:
+            raise AIClientInvalidRequestError(f"请求参数错误: {e.response.text}")
+        else:
+            raise AIClientError(f"服务错误: {e.response.status_code} - {e.response.text}")
+    except httpx.RequestError as e:
+        raise AIClientError(f"连接失败: {str(e)}")
 
-
-@retry(
-    stop=stop_after_attempt(2),  # Fewer retries for long-running operations
-    wait=wait_exponential(multiplier=2, min=5, max=30),
-    retry=retry_if_exception_type(AIClientTimeoutError),
-)
-async def generate_tryon(user_image_b64: str, garment_images: List[str], prompt: str | None = None) -> str:
-    """Generate try-on image using Leffa model."""
+# ------------------------------ 虚拟试穿（Leffa） ------------------------------
+def generate_tryon(user_photo_url: str, garment_image_url: str) -> Dict:
+    """生成虚拟试穿图片"""
     if not settings.leffa_endpoint:
-        raise AIClientError("Leffa endpoint is not configured")
-
-    if not user_image_b64 or len(user_image_b64) < 100:
-        raise AIClientInvalidRequestError("Invalid user image data")
-
-    if not garment_images or len(garment_images) == 0:
-        raise AIClientInvalidRequestError("At least one garment image is required")
-
-    payload: Dict[str, Any] = {
-        "user_image": user_image_b64,
-        "garments": garment_images,
-        "prompt": prompt or "Generate natural virtual try-on preview",
+        raise AIClientError("Leffa服务地址未配置")
+    
+    payload = {
+        "user_photo": user_photo_url,
+        "garment_image": garment_image_url,
+        "style": "natural",
+        "resolution": "1080p"
     }
-
+    
+    logger.info(f"调用Leffa试穿服务 | 用户图片: {user_photo_url} | 衣物图片: {garment_image_url}")
     try:
-        logger.info(f"Generating try-on with {len(garment_images)} garments")
-        result = await _post_json(
-            str(settings.leffa_endpoint),
-            payload,
-            timeout=settings.leffa_timeout,
+        return _sync_post_json(
+            url=settings.leffa_endpoint,
+            payload=payload,
+            timeout=120  # 试穿生成耗时较长
         )
-
-        result_b64 = result.get("result_image_base64")
-        if not result_b64:
-            raise AIClientError("No result image returned from Leffa service")
-
-        logger.info("Try-on generation completed successfully")
-        return result_b64
     except AIClientError as e:
-        logger.error(f"Failed to generate try-on: {str(e)}")
+        logger.error(f"Leffa服务调用失败: {str(e)}")
         raise
 
+# ------------------------------ 衣物标签识别（FashionCLIP） ------------------------------
+def extract_garment_tags(image_data: bytes) -> List[str]:
+    """提取衣物标签"""
+    if not settings.fashionclip_endpoint:
+        logger.warning("FashionCLIP未配置，返回默认标签")
+        return ["未识别标签"]
+    
+    payload = {
+        # 使用 Base64 编码以避免 hex 导致体积膨胀
+        "image_data": base64.b64encode(image_data).decode(),
+        "top_k": 5  # 返回前5个标签
+    }
+    
+    logger.info("调用FashionCLIP标签识别服务")
+    try:
+        result = _sync_post_json(
+            url=settings.fashionclip_endpoint,
+            payload=payload,
+            timeout=60
+        )
+        return result.get("tags", [])
+    except AIClientError as e:
+        logger.error(f"FashionCLIP调用失败: {str(e)}")
+        return ["标签识别失败"]
 
-async def summarize_outfit(weather: dict, garments: list[dict], rationale: str) -> str:
-    """Generate outfit summary using Baichuan model."""
-    if not settings.baichuan_api_url or not settings.baichuan_api_key:
-        logger.debug("Baichuan API not configured, returning original rationale")
-        return rationale
+# ------------------------------ 穿搭文案生成（百川） ------------------------------
+def summarize_outfit(garments: List[Dict], weather: Dict) -> str:
+    """生成穿搭描述文案"""
+    if not settings.baichuan_api_key:
+        logger.warning("百川API未配置，返回默认文案")
+        return "今日穿搭推荐：适合当前天气的舒适搭配"
+    
+    # 构建提示词
+    def _get_field(item, field, default=None):
+        # 支持 dict-like、对象属性（SQLAlchemy 或 Pydantic 模型）
+        try:
+            # 属性访问优先（适用于 Pydantic / ORM 实例）
+            if hasattr(item, field):
+                return getattr(item, field)
+        except Exception:
+            pass
+        try:
+            # 字典访问回退
+            return item.get(field, default) if isinstance(item, dict) else default
+        except Exception:
+            return default
 
-    headers = {"Authorization": f"Bearer {settings.baichuan_api_key}"}
+    garment_desc = "\n".join([
+        f"- {_get_field(g, 'category', '')}: {_get_field(g, 'name', '')}（{','.join(_get_field(g, 'tags', []) or [])}）"
+        for g in garments
+    ])
+    prompt = f"""
+    基于以下信息生成简洁优美的穿搭描述（50字以内）：
+    天气：{weather['condition']}，温度{weather['temp_c']}℃
+    衣物：{garment_desc}
+    要求：口语化、友好，突出搭配亮点和适配天气的原因
+    """
+    
     payload = {
         "model": settings.baichuan_model,
         "messages": [
-            {"role": "system", "content": "你是一个智能衣橱搭配助手，擅长根据天气和衣物特点给出专业的穿搭建议。"},
-            {
-                "role": "user",
-                "content": f"天气情况：{weather}。衣物信息：{garments}。选择理由：{rationale}。请用简洁的中文总结这套穿搭的推荐理由。",
-            },
+            {"role": "user", "content": prompt}
         ],
+        "temperature": 0.7,
+        "max_tokens": 100
     }
-
+    
+    headers = {
+        "Authorization": f"Bearer {settings.baichuan_api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    logger.info("调用百川大模型生成穿搭文案")
     try:
-        result = await _post_json(
-            str(settings.baichuan_api_url),
-            payload,
+        result = _sync_post_json(
+            url=settings.baichuan_endpoint,
+            payload=payload,
             headers=headers,
-            timeout=settings.baichuan_timeout,
+            timeout=30
         )
-        # Handle different response formats
-        content = None
-        if "choices" in result and len(result["choices"]) > 0:
-            content = result["choices"][0].get("message", {}).get("content")
-        elif "content" in result:
-            content = result["content"]
-        elif "text" in result:
-            content = result["text"]
-
-        if content:
-            logger.info("Outfit summary generated successfully")
-            return content
-        else:
-            logger.warning("Unexpected response format from Baichuan API")
-            return rationale
+        return result.get("choices", [{}])[0].get("message", {}).get("content", "今日穿搭推荐")
     except AIClientError as e:
-        logger.warning(f"Failed to generate outfit summary, using fallback: {str(e)}")
-        return rationale
-
-
-def to_base64(binary: bytes) -> str:
-    return base64.b64encode(binary).decode("utf-8")
-
+        logger.error(f"百川模型调用失败: {str(e)}")
+        return "今日穿搭推荐：适合当前天气的舒适搭配"
