@@ -1,96 +1,73 @@
 from datetime import datetime
-from enum import Enum as PyEnum
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint, JSON
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy.orm import relationship
 
-Base = declarative_base()
-
+from .database import Base
 
 class User(Base):
+    """用户模型"""
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    phone = Column(String(20), unique=True, nullable=False, index=True)
-    nickname = Column(String(64), nullable=True)
-    avatar_url = Column(String(255), nullable=True)
-    hashed_password = Column(String(255), nullable=False)
-    location = Column(String(128), nullable=True)
-    gender = Column(String(10), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    phone = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    nickname = Column(String, default="用户")
+    avatar_url = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
 
+    # 关联关系
     garments = relationship("Garment", back_populates="owner", cascade="all, delete-orphan")
-    tryon_records = relationship("TryOnRecord", back_populates="user", cascade="all, delete-orphan")
-    favorites = relationship("FavoriteLook", back_populates="user", cascade="all, delete-orphan")
-
+    tryon_records = relationship("TryonRecord", back_populates="owner", cascade="all, delete-orphan")
+    favorites = relationship("Favorite", back_populates="owner", cascade="all, delete-orphan")
 
 class Garment(Base):
+    """衣物模型"""
     __tablename__ = "garments"
 
     id = Column(Integer, primary_key=True, index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    name = Column(String(120), nullable=False)
-    category = Column(String(64), nullable=False)
-    scene = Column(String(64), nullable=True)
-    style = Column(String(64), nullable=True)
-    season = Column(String(32), nullable=True)
-    colorway = Column(String(32), nullable=True)
-    price = Column(Integer, nullable=True)
-    purchased_at = Column(DateTime, nullable=True)
-    image_url = Column(String(255), nullable=True)
-    embeddings = Column(JSON, nullable=True)
-    extra_tags = Column(JSON, default=dict, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)
+    category = Column(String, nullable=False, index=True)  # 上衣/裤子/外套/鞋等
+    color = Column(String, nullable=True)
+    image_url = Column(String, nullable=False)
+    tags = Column(JSON, default=list)  # 标签列表：["休闲", "红色", "夏季"]
+    season = Column(String, nullable=True)  # 春/夏/秋/冬
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    # 关联关系
     owner = relationship("User", back_populates="garments")
-    tags = relationship("GarmentTag", back_populates="garment", cascade="all, delete-orphan")
+    tryon_records = relationship("TryonRecord", back_populates="garment")
 
+class TryonRecord(Base):
+    """虚拟试穿记录"""
+    __tablename__ = "tryon_records"
 
-class GarmentTag(Base):
-    __tablename__ = "garment_tags"
-
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     garment_id = Column(Integer, ForeignKey("garments.id"), nullable=False)
-    key = Column(String(50), nullable=False)
-    value = Column(String(100), nullable=False)
+    user_photo_url = Column(String, nullable=False)
+    tryon_image_url = Column(String, nullable=False)
+    tryon_status = Column(String, default="success")  # success/failed
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    garment = relationship("Garment", back_populates="tags")
+    # 关联关系
+    owner = relationship("User", back_populates="tryon_records")
+    garment = relationship("Garment", back_populates="tryon_records")
+    favorites = relationship("Favorite", back_populates="tryon_record", cascade="all, delete-orphan")
 
-    __table_args__ = (UniqueConstraint("garment_id", "key", name="uq_garment_tag_key"),)
+class Favorite(Base):
+    """收藏记录"""
+    __tablename__ = "favorites"
 
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tryon_record_id = Column(Integer, ForeignKey("tryon_records.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-class TryOnStatus(str, PyEnum):
-    """Try-on status enumeration."""
-    pending = "pending"
-    completed = "completed"
-    failed = "failed"
-
-
-class TryOnRecord(Base):
-    __tablename__ = "try_on_records"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    garment_ids = Column(JSON, nullable=False)
-    result_image_url = Column(String(255), nullable=True)
-    prompt = Column(Text, nullable=True)
-    status = Column(Enum(TryOnStatus, native_enum=False, length=20), default=TryOnStatus.pending, nullable=False)
-    meta_data = Column(JSON, default=dict, nullable=False)  # Renamed from 'metadata' to avoid conflict with SQLAlchemy's reserved attribute
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    user = relationship("User", back_populates="tryon_records")
-    favorite = relationship("FavoriteLook", back_populates="record", uselist=False)
-
-
-class FavoriteLook(Base):
-    __tablename__ = "favorite_looks"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    record_id = Column(Integer, ForeignKey("try_on_records.id"), nullable=False)
-    notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    user = relationship("User", back_populates="favorites")
-    record = relationship("TryOnRecord", back_populates="favorite")
-
+    # 关联关系
+    owner = relationship("User", back_populates="favorites")
+    tryon_record = relationship("TryonRecord", back_populates="favorites")

@@ -1,289 +1,291 @@
-/**
- * API 服务封装
- * 所有后端接口调用统一管理
- */
+// API基础配置
+const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
 
-const API_BASE_URL = 'http://127.0.0.1:8000'; // 后端 API 地址
+// Token管理
+const TOKEN_KEY = 'smart_wardrobe_access_token';
+const REFRESH_TOKEN_KEY = 'smart_wardrobe_refresh_token';
 
-// 获取 token
+// 获取Token
 function getToken() {
-  return localStorage.getItem('access_token');
+    return localStorage.getItem(TOKEN_KEY);
 }
 
-// 获取刷新 token
-function getRefreshToken() {
-  return localStorage.getItem('refresh_token');
-}
-
-// 保存 token
+// 保存Token
 function saveToken(accessToken, refreshToken) {
-  localStorage.setItem('access_token', accessToken);
-  if (refreshToken) {
-    localStorage.setItem('refresh_token', refreshToken);
-  }
+    localStorage.setItem(TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
-// 清除 token
+// 清除Token
 function clearToken() {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+// 获取刷新Token
+function getRefreshToken() {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 // 通用请求函数
 async function request(url, options = {}) {
-  const token = getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+    const token = getToken();
+    // 合并 headers；若 body 是 FormData 则不要设置 Content-Type（浏览器会自动设置边界）
+    const headers = {
+        ...(options.headers || {})
+    };
+    if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+    // 添加认证头
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-      ...options,
-      headers,
-    });
-
-    // 处理 401 未授权，尝试刷新 token
-    if (response.status === 401 && getRefreshToken()) {
-      try {
-        const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: getRefreshToken() }),
-        });
-
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          saveToken(refreshData.access_token, refreshData.refresh_token);
-          // 重试原请求
-          headers['Authorization'] = `Bearer ${refreshData.access_token}`;
-          const retryResponse = await fetch(`${API_BASE_URL}${url}`, {
+    try {
+        const response = await fetch(`${API_BASE_URL}${url}`, {
             ...options,
             headers,
-          });
-          return await retryResponse.json();
-        } else {
-          clearToken();
-          throw new Error('登录已过期，请重新登录');
+        });
+
+        // 处理401错误（Token过期）
+        if (response.status === 401 && getRefreshToken()) {
+            try {
+                // 尝试刷新Token
+                const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getRefreshToken()}`,
+                    },
+                });
+
+                if (refreshResponse.ok) {
+                    const refreshData = await refreshResponse.json();
+                    saveToken(refreshData.access_token, refreshData.refresh_token);
+                    
+                    // 重试原请求
+                    headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+                    const retryResponse = await fetch(`${API_BASE_URL}${url}`, {
+                        ...options,
+                        headers,
+                    });
+                    return handleResponse(retryResponse);
+                } else {
+                    // 刷新失败，清除Token
+                    clearToken();
+                    throw new Error('登录已过期，请重新登录');
+                }
+            } catch (refreshError) {
+                clearToken();
+                throw refreshError;
+            }
         }
-      } catch (error) {
-        clearToken();
+
+        return handleResponse(response);
+    } catch (error) {
+        console.error('API请求错误:', error);
         throw error;
-      }
     }
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: response.statusText }));
-      throw new Error(error.detail || '请求失败');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
-  }
 }
 
-// 文件上传请求
-async function uploadFile(url, formData) {
-  const token = getToken();
-  const headers = {};
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${url}`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || '上传失败');
-  }
-
-  return await response.json();
+// 响应处理
+async function handleResponse(response) {
+    const data = await response.json().catch(() => ({}));
+    
+    if (!response.ok) {
+        const errorMsg = data.detail || data.message || `请求失败 (${response.status})`;
+        throw new Error(errorMsg);
+    }
+    
+    return data;
 }
 
-// ==================== 认证相关 API ====================
-
-export const authAPI = {
-  // 注册
-  register: async (phone, password, nickname) => {
-    return request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ phone, password, nickname }),
-    });
-  },
-
-  // 登录
-  login: async (phone, password) => {
-    const formData = new FormData();
-    formData.append('username', phone);
-    formData.append('password', password);
-
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: response.statusText }));
-      throw new Error(error.detail || '登录失败');
-    }
-
-    const data = await response.json();
-    saveToken(data.access_token, data.refresh_token);
-    return data;
-  },
-
-  // 刷新 token
-  refreshToken: async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('没有刷新令牌');
-    }
-
-    const data = await request('/auth/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-
-    saveToken(data.access_token, data.refresh_token);
-    return data;
-  },
-
-  // 退出登录
-  logout: () => {
-    clearToken();
-  },
+// API模块封装
+const api = {
+    // Token管理
+    getToken,
+    saveToken,
+    clearToken,
+    
+    // 认证相关
+    authAPI: {
+        // 注册
+        register: async (userData) => {
+            return request('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(userData),
+            });
+        },
+        // 登录
+        login: async (loginData) => {
+            return request('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify(loginData),
+            });
+        },
+        // 刷新Token
+        refreshToken: async () => {
+            return request('/auth/refresh', {
+                method: 'POST',
+                body: JSON.stringify({ refresh_token: getRefreshToken() }),
+            });
+        },
+        // 登出
+        logout: async () => {
+            return request('/auth/logout', {
+                method: 'POST',
+            });
+        },
+    },
+    
+    // 衣橱管理
+    wardrobeAPI: {
+        // 获取衣物列表
+        getGarments: async (params = {}) => {
+            const queryString = new URLSearchParams(params).toString();
+            return request(`/wardrobe/items${queryString ? '?' + queryString : ''}`);
+        },
+        // 创建衣物
+        createGarment: async (formData) => {
+            return request('/wardrobe/items', {
+                method: 'POST',
+                body: formData,
+                headers: {}, // 让浏览器自动设置Content-Type
+            });
+        },
+        // 更新衣物
+        updateGarment: async (id, garmentData) => {
+            return request(`/wardrobe/items/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(garmentData),
+            });
+        },
+        // 删除衣物
+        deleteGarment: async (id) => {
+            return request(`/wardrobe/items/${id}`, {
+                method: 'DELETE',
+            });
+        },
+    },
+    
+    // 虚拟试穿
+    tryonAPI: {
+        // 生成试穿效果
+        generateTryon: async (formData) => {
+            return request('/tryon/generate', {
+                method: 'POST',
+                body: formData,
+                headers: {},
+            });
+        },
+        // 获取试穿记录
+        getTryonRecord: async (id) => {
+            return request(`/tryon/records/${id}`);
+        },
+    },
+    
+    // 穿搭推荐
+    recommendationAPI: {
+        // 每日推荐
+        getDailyRecommendations: async (params) => {
+            return request('/recommendations/daily', {
+                method: 'POST',
+                body: JSON.stringify(params),
+            });
+        },
+    },
+    
+    // 记录管理
+    recordsAPI: {
+        // 获取试穿历史
+        getTryonHistory: async (params = {}) => {
+            const queryString = new URLSearchParams(params).toString();
+            return request(`/records/history${queryString ? '?' + queryString : ''}`);
+        },
+        // 获取收藏列表
+        getFavorites: async (params = {}) => {
+            const queryString = new URLSearchParams(params).toString();
+            return request(`/records/favorites${queryString ? '?' + queryString : ''}`);
+        },
+        // 添加收藏
+        addFavorite: async (tryonRecordId) => {
+            return request('/records/favorites', {
+                method: 'POST',
+                body: JSON.stringify({ tryon_record_id: tryonRecordId }),
+            });
+        },
+        // 删除收藏
+        deleteFavorite: async (id) => {
+            return request(`/records/favorites/${id}`, {
+                method: 'DELETE',
+            });
+        },
+        // 删除试穿记录
+        deleteTryonRecord: async (id) => {
+            return request(`/records/history/${id}`, {
+                method: 'DELETE',
+            });
+        },
+        // 保存试穿记录
+        saveTryonRecord: async (id) => {
+            return request(`/records/save/${id}`, {
+                method: 'POST',
+            });
+        },
+    },
+    
+    // 个人中心
+    profileAPI: {
+        // 获取个人信息
+        getProfile: async () => {
+            return request('/profile/me');
+        },
+        // 更新个人信息
+        updateProfile: async (profileData) => {
+            return request('/profile/update', {
+                method: 'PUT',
+                body: JSON.stringify(profileData),
+            });
+        },
+        // 更新头像
+        updateAvatar: async (formData) => {
+            return request('/profile/avatar', {
+                method: 'POST',
+                body: formData,
+                headers: {},
+            });
+        },
+        // 修改密码
+        updatePassword: async (passwordData) => {
+            return request('/profile/password', {
+                method: 'PUT',
+                body: JSON.stringify(passwordData),
+            });
+        },
+    },
+    
+    // 天气服务
+    weatherAPI: {
+        // 获取天气
+        getWeather: async (city) => {
+            // 模拟天气数据，实际项目中调用后端接口
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve({
+                        city: city,
+                        condition: '晴',
+                        temp_c: 25,
+                        humidity: 60,
+                    });
+                }, 500);
+            });
+            // 实际接口调用：
+            // return request(`/weather?city=${encodeURIComponent(city)}`);
+        },
+    },
 };
 
-// ==================== 用户相关 API ====================
-
-export const userAPI = {
-  // 获取当前用户信息
-  getCurrentUser: async () => {
-    return request('/profile/me');
-  },
-
-  // 更新用户信息
-  updateUser: async (data) => {
-    return request('/profile/update', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
-  // 更新密码
-  updatePassword: async (oldPassword, newPassword) => {
-    return request('/profile/password', {
-      method: 'PUT',
-      body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
-    });
-  },
-};
-
-// ==================== 衣橱相关 API ====================
-
-export const wardrobeAPI = {
-  // 获取衣物列表
-  getGarments: async (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return request(`/wardrobe/items${queryString ? '?' + queryString : ''}`);
-  },
-
-  // 创建衣物
-  createGarment: async (formData) => {
-    return uploadFile('/wardrobe/items', formData);
-  },
-
-  // 更新衣物
-  updateGarment: async (garmentId, data) => {
-    return request(`/wardrobe/items/${garmentId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
-  // 删除衣物
-  deleteGarment: async (garmentId) => {
-    return request(`/wardrobe/items/${garmentId}`, {
-      method: 'DELETE',
-    });
-  },
-};
-
-// ==================== 试穿相关 API ====================
-
-export const tryonAPI = {
-  // 生成试穿效果
-  generateTryon: async (garmentIds, userPhoto, prompt) => {
-    const formData = new FormData();
-    formData.append('user_photo', userPhoto);
-    formData.append('garment_ids', JSON.stringify(garmentIds));
-    if (prompt) {
-      formData.append('prompt', prompt);
-    }
-
-    return uploadFile('/tryon/generate', formData);
-  },
-};
-
-// ==================== 推荐相关 API ====================
-
-export const recommendationAPI = {
-  // 获取每日推荐
-  getDailyRecommendation: async (city) => {
-    return request('/recommendations/daily', {
-      method: 'POST',
-      body: JSON.stringify({ city }),
-    });
-  },
-};
-
-// ==================== 记录相关 API ====================
-
-export const recordsAPI = {
-  // 获取试穿历史
-  getHistory: async (page = 1, pageSize = 20) => {
-    return request(`/records/history?page=${page}&page_size=${pageSize}`);
-  },
-
-  // 获取历史记录总数
-  getHistoryCount: async () => {
-    return request('/records/history/count');
-  },
-
-  // 添加收藏
-  addFavorite: async (recordId, notes) => {
-    return request('/records/favorites', {
-      method: 'POST',
-      body: JSON.stringify({ record_id: recordId, notes }),
-    });
-  },
-
-  // 获取收藏列表
-  getFavorites: async (page = 1, pageSize = 20) => {
-    return request(`/records/favorites?page=${page}&page_size=${pageSize}`);
-  },
-};
-
-// 导出所有 API
-export default {
-  auth: authAPI,
-  user: userAPI,
-  wardrobe: wardrobeAPI,
-  tryon: tryonAPI,
-  recommendation: recommendationAPI,
-  records: recordsAPI,
-  getToken,
-  clearToken,
-};
-
+// 暴露API对象
+window.api = api;

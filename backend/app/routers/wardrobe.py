@@ -1,137 +1,167 @@
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Form
+from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy.orm import Session
+from ..database import get_db
+from ..models import User, Garment
+from ..schemas import GarmentCreate, GarmentUpdate, GarmentResponse, BaseResponse
+from ..dependencies import get_current_user
+from ..services.image_storage import save_image
+from ..services.tagging import auto_tag_garment
 
-from .. import schemas
-from ..config import get_settings
-from ..dependencies import get_current_user, get_db
-from ..models import Garment, GarmentTag, User
-from ..services import tagging
-from ..services.image_storage import build_public_url, save_temp_image
+router = APIRouter(prefix="/wardrobe", tags=["衣橱管理"])
 
-router = APIRouter(prefix="/wardrobe", tags=["wardrobe"])
-settings = get_settings()
-
-
-@router.get("/items", response_model=List[schemas.GarmentOut])
-def list_garments(
-    category: Optional[str] = None,
-    scene: Optional[str] = None,
-    style: Optional[str] = None,
-    season: Optional[str] = None,
-    colorway: Optional[str] = None,
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(None, ge=1, le=settings.max_page_size, description="Items per page"),
+@router.post("/items", response_model=GarmentResponse, status_code=status.HTTP_201_CREATED)
+def create_garment(
+    name: str = Form(...),
+    category: str = Form(...),
+    color: Optional[str] = Form(None),
+    season: Optional[str] = Form(None),
+    manual_tags: Optional[str] = Form(None),
+    file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
-    """List garments with filtering and pagination."""
-    page_size = page_size or settings.default_page_size
-    offset = (page - 1) * page_size
+    """添加新衣物（支持 multipart/form-data）"""
+    try:
+        # 解析手动标签（前端可传逗号分隔字符串）
+        manual_tags_list = [t.strip() for t in manual_tags.split(',')] if manual_tags else []
 
-    query = db.query(Garment).filter(Garment.owner_id == current_user.id, Garment.is_deleted.is_(False))
+        # 自动生成标签（auto_tag_garment 会重置 file 指针）
+        auto_tags = auto_tag_garment(file)
+
+        # 保存图片
+        image_url = save_image(file, current_user.id)
+
+        # 合并标签
+        all_tags = auto_tags + manual_tags_list
+
+        # 创建衣物记录
+        garment = Garment(
+            owner_id=current_user.id,
+            name=name,
+            category=category,
+            color=color,
+            season=season,
+            image_url=image_url,
+            tags=all_tags
+        )
+        db.add(garment)
+        db.commit()
+        db.refresh(garment)
+
+        return garment
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"添加衣物失败: {str(e)}"
+        )
+
+@router.get("/items", response_model=List[GarmentResponse])
+def get_garments(
+    category: Optional[str] = Query(None),
+    color: Optional[str] = Query(None),
+    season: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取衣物列表（支持筛选和分页）"""
+    # 构建查询条件
+    query = db.query(Garment).filter(
+        Garment.owner_id == current_user.id,
+        Garment.is_deleted == False
+    )
+    
+    # 筛选条件
     if category:
         query = query.filter(Garment.category == category)
-    if scene:
-        query = query.filter(Garment.scene == scene)
-    if style:
-        query = query.filter(Garment.style == style)
+    if color:
+        query = query.filter(Garment.color == color)
     if season:
         query = query.filter(Garment.season == season)
-    if colorway:
-        query = query.filter(Garment.colorway == colorway)
+    if tag:
+        query = query.filter(Garment.tags.contains([tag]))
+    
+    # 分页
+    offset = (page - 1) * page_size
+    garments = query.offset(offset).limit(page_size).all()
+    
+    return garments
 
-    return query.order_by(Garment.created_at.desc()).offset(offset).limit(page_size).all()
-
-
-@router.post("/items", response_model=schemas.GarmentOut)
-async def create_garment(
-    name: str = Form(..., min_length=1, max_length=120),
-    category: str = Form(..., min_length=1, max_length=64),
-    scene: Optional[str] = Form(None, max_length=64),
-    style: Optional[str] = Form(None, max_length=64),
-    season: Optional[str] = Form(None, max_length=32),
-    colorway: Optional[str] = Form(None, max_length=32),
-    price: Optional[int] = Form(None, ge=0),
-    image: UploadFile | None = File(None),
+@router.get("/items/{garment_id}", response_model=GarmentResponse)
+def get_garment(
+    garment_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
-    auto_tags = {}
-    image_url = None
-    if image:
-        # Validate image format
-        from ..services.image_storage import validate_image_format, validate_image_size
-
-        validate_image_format(image.filename or "")
-        content = await image.read()
-        if not content:
-            raise HTTPException(status_code=400, detail="Empty image upload")
-        validate_image_size(content)
-
-        # Auto-tag with AI
-        try:
-            auto_tags = await tagging.auto_tag_image(content)
-        except Exception as e:
-            # Log error but continue without auto-tags
-            import logging
-            logging.getLogger(__name__).warning(f"Failed to auto-tag image: {str(e)}")
-
-        # Save image
-        suffix = f".{image.filename.split('.')[-1]}" if "." in (image.filename or "") else ".jpg"
-        path = save_temp_image(content, suffix=suffix, compress=True)
-        image_url = build_public_url(path)
-
-    garment = Garment(
-        owner_id=current_user.id,
-        name=name,
-        category=category or auto_tags.get("category"),
-        scene=scene or auto_tags.get("scene"),
-        style=style or auto_tags.get("style"),
-        season=season or auto_tags.get("season"),
-        colorway=colorway or auto_tags.get("colorway"),
-        image_url=image_url,
-        extra_tags=auto_tags.get("extra"),
-    )
-    db.add(garment)
-    db.commit()
-    db.refresh(garment)
+    """获取单条衣物信息"""
+    garment = db.query(Garment).filter(
+        Garment.id == garment_id,
+        Garment.owner_id == current_user.id,
+        Garment.is_deleted == False
+    ).first()
+    
+    if not garment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="衣物不存在"
+        )
+    
     return garment
 
-
-@router.put("/items/{garment_id}", response_model=schemas.GarmentOut)
+@router.put("/items/{garment_id}", response_model=GarmentResponse)
 def update_garment(
     garment_id: int,
-    payload: schemas.GarmentUpdate,
+    garment_data: GarmentUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
-    garment = (
-        db.query(Garment)
-        .filter(Garment.id == garment_id, Garment.owner_id == current_user.id, Garment.is_deleted.is_(False))
-        .first()
-    )
+    """更新衣物信息"""
+    garment = db.query(Garment).filter(
+        Garment.id == garment_id,
+        Garment.owner_id == current_user.id,
+        Garment.is_deleted == False
+    ).first()
+    
     if not garment:
-        raise HTTPException(status_code=404, detail="Garment not found")
-
-    for field, value in payload.dict(exclude_unset=True).items():
-        setattr(garment, field, value)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="衣物不存在"
+        )
+    
+    # 更新字段
+    update_data = garment_data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(garment, key, value)
+    
     db.commit()
     db.refresh(garment)
+    
     return garment
 
-
-@router.delete("/items/{garment_id}")
+@router.delete("/items/{garment_id}", response_model=BaseResponse)
 def delete_garment(
     garment_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
-    garment = db.query(Garment).filter(Garment.id == garment_id, Garment.owner_id == current_user.id).first()
+    """删除衣物（软删除）"""
+    garment = db.query(Garment).filter(
+        Garment.id == garment_id,
+        Garment.owner_id == current_user.id,
+        Garment.is_deleted == False
+    ).first()
+    
     if not garment:
-        raise HTTPException(status_code=404, detail="Garment not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="衣物不存在"
+        )
+    
     garment.is_deleted = True
     db.commit()
-    return {"status": "deleted"}
-
+    
+    return BaseResponse(message="删除成功")

@@ -1,140 +1,115 @@
-import io
+import os
 import uuid
-from pathlib import Path
-from typing import BinaryIO
-
+import logging
+from datetime import datetime
 from PIL import Image
-from fastapi import HTTPException, status
+from io import BytesIO
+from fastapi import UploadFile, HTTPException
 
 from ..config import get_settings
 
 settings = get_settings()
-MEDIA_ROOT = Path(settings.media_root)
-MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+logger = logging.getLogger(__name__)
 
+# 初始化存储目录
+def init_storage():
+    """初始化图片存储目录"""
+    if settings.object_storage_type == "local":
+        os.makedirs(settings.image_storage_path, exist_ok=True)
+        os.makedirs(os.path.join(settings.image_storage_path, "garments"), exist_ok=True)
+        os.makedirs(os.path.join(settings.image_storage_path, "avatars"), exist_ok=True)
+        os.makedirs(os.path.join(settings.image_storage_path, "tryon"), exist_ok=True)
 
-class ImageStorageError(Exception):
-    """Base exception for image storage operations."""
+# 调用初始化
+init_storage()
 
+# 图片校验
+def validate_image(file: UploadFile) -> None:
+    """校验图片格式和大小"""
+    # 校验格式
+    allowed_formats = ["image/jpeg", "image/png", "image/jpg"]
+    if file.content_type not in allowed_formats:
+        raise HTTPException(status_code=400, detail=f"仅支持{allowed_formats}格式图片")
+    
+    # 校验大小
+    file.file.seek(0, os.SEEK_END)
+    file_size = file.file.tell()
+    file.file.seek(0)  # 重置指针
+    if file_size > settings.image_max_size:
+        raise HTTPException(status_code=400, detail=f"图片大小不能超过{settings.image_max_size/1024/1024}MB")
 
-def validate_image_format(filename: str) -> None:
-    """Validate image file format."""
-    ext = filename.split(".")[-1].lower() if "." in filename else ""
-    if ext not in settings.allowed_image_formats:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported image format. Allowed: {', '.join(settings.allowed_image_formats)}",
-        )
+# 图片压缩
+def compress_image(image: Image, quality: int = 85) -> Image:
+    """压缩图片"""
+    # 保持比例，最大宽度/高度限制为1920
+    max_size = (1920, 1920)
+    image.thumbnail(max_size)
+    
+    # 压缩质量
+    if image.mode in ("RGBA", "P"):
+        image = image.convert("RGB")
+    
+    return image
 
-
-def validate_image_size(binary: bytes) -> None:
-    """Validate image file size."""
-    max_size = settings.max_image_size_mb * 1024 * 1024
-    if len(binary) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Image too large. Maximum size: {settings.max_image_size_mb}MB",
-        )
-
-
-def compress_image(binary: bytes, quality: int | None = None) -> bytes:
-    """Compress image while maintaining quality."""
+# 本地存储核心函数
+def _save_local(file: UploadFile, user_id: int, sub_dir: str) -> str:
+    """本地存储图片"""
+    # 生成唯一文件名
+    file_ext = file.filename.split(".")[-1]
+    file_name = f"{user_id}_{uuid.uuid4().hex}.{file_ext}"
+    # 构建存储路径
+    date_dir = datetime.now().strftime("%Y%m")
+    save_dir = os.path.join(settings.image_storage_path, sub_dir, date_dir)
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, file_name)
+    
     try:
-        img = Image.open(io.BytesIO(binary))
-        # Convert RGBA to RGB if necessary (for JPEG)
-        if img.mode in ("RGBA", "LA", "P"):
-            background = Image.new("RGB", img.size, (255, 255, 255))
-            if img.mode == "P":
-                img = img.convert("RGBA")
-            background.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
-            img = background
-        elif img.mode != "RGB":
-            img = img.convert("RGB")
-
-        # Resize if too large
-        max_dim = settings.image_max_dimension
-        if img.width > max_dim or img.height > max_dim:
-            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
-
-        # Save to bytes
-        output = io.BytesIO()
-        img.save(output, format="JPEG", quality=quality or settings.image_quality, optimize=True)
-        return output.getvalue()
+        # 读取并压缩图片
+        image = Image.open(file.file)
+        compressed_image = compress_image(image, settings.image_quality)
+        # 保存图片
+        compressed_image.save(save_path, quality=settings.image_quality)
+        # 返回访问URL（本地路径转URL）
+        return f"/uploads/{sub_dir}/{date_dir}/{file_name}"
     except Exception as e:
-        raise ImageStorageError(f"Failed to process image: {str(e)}") from e
+        logger.error(f"保存图片失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="图片保存失败")
 
+# 对象存储（示例，需根据实际S3/OSS扩展）
+def _save_object_storage(file: UploadFile, user_id: int, sub_dir: str) -> str:
+    """对象存储（S3/OSS），此处为示例框架"""
+    raise NotImplementedError("对象存储功能需根据实际服务商实现")
 
-def save_temp_image(binary: bytes, suffix: str = ".png", compress: bool = True) -> str:
-    """Save image to local storage or object storage."""
-    # Validate format
-    if suffix.startswith("."):
-        ext = suffix[1:].lower()
-    else:
-        ext = suffix.lower()
-    if ext not in settings.allowed_image_formats:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported format: {ext}",
-        )
-
-    # Validate size
-    validate_image_size(binary)
-
-    # Compress if needed
-    if compress and ext in ("jpg", "jpeg", "png"):
-        try:
-            binary = compress_image(binary)
-            suffix = ".jpg"  # Compressed images are saved as JPEG
-        except ImageStorageError:
-            pass  # If compression fails, use original
-
-    # Save to storage
+# 对外暴露的保存函数
+def save_image(file: UploadFile, user_id: int) -> str:
+    """保存衣物图片"""
+    validate_image(file)
     if settings.object_storage_type == "local":
-        return _save_local(binary, suffix)
+        return _save_local(file, user_id, "garments")
     else:
-        return _save_to_object_storage(binary, suffix)
+        return _save_object_storage(file, user_id, "garments")
 
-
-def _save_local(binary: bytes, suffix: str) -> str:
-    """Save image to local filesystem."""
-    file_id = f"{uuid.uuid4().hex}{suffix}"
-    file_path = MEDIA_ROOT / file_id
-    file_path.write_bytes(binary)
-    return str(file_path)
-
-
-def _save_to_object_storage(binary: bytes, suffix: str) -> str:
-    """Save image to object storage (S3/OSS/Qiniu)."""
-    # TODO: Implement actual object storage integration
-    # For now, fallback to local storage
-    return _save_local(binary, suffix)
-
-
-def build_public_url(file_path: str) -> str:
-    """Build public URL for image."""
+def save_avatar(file: UploadFile, user_id: int) -> str:
+    """保存头像"""
+    validate_image(file)
     if settings.object_storage_type == "local":
-        # For local storage, return relative path or construct full URL
-        # In production, you might want to serve via nginx/CDN
-        if settings.is_production and settings.frontend_origin:
-            base_url = str(settings.frontend_origin).rstrip("/")
-            # Extract relative path
-            rel_path = str(file_path).replace(str(MEDIA_ROOT), "").lstrip("/")
-            return f"{base_url}/media/{rel_path}"
-        return file_path
+        return _save_local(file, user_id, "avatars")
     else:
-        # TODO: Generate signed URL for object storage
-        # For S3: return presigned URL
-        # For OSS: return public URL with signature
-        return file_path
+        return _save_object_storage(file, user_id, "avatars")
 
-
-def delete_image(file_path: str) -> None:
-    """Delete image from storage."""
-    if settings.object_storage_type == "local":
-        path = Path(file_path)
-        if path.exists():
-            path.unlink()
-    else:
-        # TODO: Delete from object storage
-        pass
-
+def save_tryon_image(image_data: bytes, user_id: int) -> str:
+    """保存试穿图片"""
+    # 模拟图片数据处理（实际需根据AI返回格式调整）
+    file_name = f"{user_id}_{uuid.uuid4().hex}.jpg"
+    date_dir = datetime.now().strftime("%Y%m")
+    save_dir = os.path.join(settings.image_storage_path, "tryon", date_dir)
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, file_name)
+    
+    try:
+        image = Image.open(BytesIO(image_data))
+        image.save(save_path)
+        return f"/uploads/tryon/{date_dir}/{file_name}"
+    except Exception as e:
+        logger.error(f"保存试穿图片失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="试穿图片保存失败")

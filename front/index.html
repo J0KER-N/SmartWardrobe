@@ -84,12 +84,14 @@
       align-items: center;
       background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
       padding-top: 0; /* 启动页不需要顶部预留空间 */
+      text-align: center; /* 文字居中 */
     }
     .splash-logo {
       font-size: 32px;
       font-weight: bold;
       color: #1989fa;
-      margin-bottom: 20px;
+      margin-top: 20px; /* 图片在文字上方，所以给文字添加上边距 */
+      margin-bottom: 10px;
     }
     .skip-btn {
       position: absolute;
@@ -209,9 +211,10 @@
     <!-- 1. 启动页面 -->
     <div class="page splash active" id="splashPage">
       <div class="skip-btn" @click="goToLogin">{{ skipText }}</div>
+      <!-- 图片放在文字上方 -->
+      <img src="https://picsum.photos/seed/wardrobe-splash/300/300" alt="智能衣橱启动图" class="w-64 h-64 rounded-full mb-0">
       <div class="splash-logo">简衣橱</div>
-      <div class="text-gray-500 text-lg mb-10">智能穿搭衣橱</div>
-      <img src="https://picsum.photos/seed/wardrobe-splash/300/300" alt="智能衣橱启动图" class="w-64 h-64 rounded-full mb-8">
+      <div class="text-gray-500 text-lg">智能穿搭衣橱</div>
     </div>
 
     <!-- 2. 登录页面 -->
@@ -304,8 +307,24 @@
         <p class="text-gray-500 mb-6">重塑日常，表达真我~</p>
         
         <div class="mb-4">
-          <h2 class="text-lg font-semibold mb-3">今日穿搭定制</h2>
-          <button class="van-button van-button--text text-blue-500 mb-4" @click="goToSmartWardrobe">详细</button>
+  <div class="relative">
+    <!-- 使用 van-swipe 组件实现轮播 -->
+    <van-swipe class="img-container h-48" :autoplay="3000" indicator-color="white">
+      <!-- 循环渲染多张随机图片 -->
+      <van-swipe-item v-for="img in 5" :key="img">
+        <img 
+          :src="`https://picsum.photos/seed/outfit-${img}/800/400`" 
+          alt="今日穿搭推荐" 
+          class="w-full h-full object-cover"
+        >
+      </van-swipe-item>
+    </van-swipe>
+    <div class="absolute top-3 left-3 text-white">
+      <h2 class="text-lg font-bold">今日穿搭定制</h2>
+      <p class="text-sm">专属场景风格</p>
+    </div>
+    <button class="absolute bottom-3 left-3 van-button van-button--primary" @click="goToSmartWardrobe" style="color: black;">详细</button>
+      </div>
           
           <div class="grid grid-cols-2 gap-4">
             <div class="bg-gray-100 rounded-lg p-3 relative clothes-item" @click="goToClothesDetail(1)">
@@ -366,11 +385,11 @@
           <span>推荐</span>
         </div>
         <div class="tabbar-item" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-box-o text-lg"></i>
+          <i class="van-icon van-icon-clothes text-lg"></i>
           <span>衣橱</span>
         </div>
         <div class="tabbar-item" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-history-o text-lg"></i>
+          <i class="van-icon van-icon-clock-o text-lg"></i>
           <span>历史</span>
         </div>
         <div class="tabbar-item" @click="showPage('minePage')">
@@ -435,9 +454,9 @@
           删除选中项 ({{ selectedClothes.length }})
         </button>
         
-        <button class="fixed bottom-20 right-6 w-14 h-14 rounded-full bg-blue-500 text-white flex justify-center items-center text-2xl" @click="goToSmartWardrobe">
-          +
-        </button>
+        <button class="fixed bottom-20 right-6 w-14 h-14 rounded-full bg-blue-500 text-white flex justify-center items-center text-2xl" @click="goToAddClothesPage">
+  +
+</button>
       </div>
 
       <div class="tabbar">
@@ -446,11 +465,11 @@
           <span>推荐</span>
         </div>
         <div class="tabbar-item active" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-box-o text-lg"></i>
+          <i class="van-icon van-icon-clothes text-lg"></i>
           <span>衣橱</span>
         </div>
         <div class="tabbar-item" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-history-o text-lg"></i>
+          <i class="van-icon van-icon-clock-o  text-lg"></i>
           <span>历史</span>
         </div>
         <div class="tabbar-item" @click="showPage('minePage')">
@@ -621,11 +640,11 @@
           <span>推荐</span>
         </div>
         <div class="tabbar-item" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-box-o text-lg"></i>
+          <i class="van-icon van-icon-clothes text-lg"></i>
           <span>衣橱</span>
         </div>
         <div class="tabbar-item active" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-history-o text-lg"></i>
+          <i class="van-icon van-icon-clock-o text-lg"></i>
           <span>历史</span>
         </div>
         <div class="tabbar-item" @click="showPage('minePage')">
@@ -729,11 +748,11 @@
           <span>推荐</span>
         </div>
         <div class="tabbar-item" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-box-o text-lg"></i>
+          <i class="van-icon van-icon-clothes text-lg"></i>
           <span>衣橱</span>
         </div>
         <div class="tabbar-item" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-history-o text-lg"></i>
+          <i class="van-icon van-icon-clock-o text-lg"></i>
           <span>历史</span>
         </div>
         <div class="tabbar-item active" @click="showPage('minePage')">
@@ -956,6 +975,112 @@
       </div>
     </div>
 
+    <!-- 新增：添加衣物页面 -->
+<div class="page" id="addClothesPage">
+  <div class="top-nav">
+    <button class="van-button van-button--text" @click="goBackToPrevious">
+      <i class="van-icon van-icon-arrow-left"></i>
+    </button>
+    <div class="top-nav-title">智能衣橱</div>
+    <div class="w-8"></div>
+  </div>
+  
+  <div class="content">
+    <!-- 图片选择区域 -->
+    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-6">
+      <button class="van-button van-button--default mr-4" @click="selectFromAlbum">
+        <i class="van-icon van-icon-picture-o mr-1"></i> 相册选择
+      </button>
+      <button class="van-button van-button--primary" @click="takePhoto">
+        <i class="van-icon van-icon-camera-o mr-1"></i> 拍摄照片
+      </button>
+      
+      <!-- 预览选中的图片 -->
+      <div v-if="newClothesImg" class="mt-4 img-container mx-auto" style="width: 200px; height: 200px;">
+        <img :src="newClothesImg" alt="衣物预览" class="w-full h-full object-cover">
+      </div>
+    </div>
+    
+    <!-- 表单区域 -->
+    <div class="space-y-4">
+      <div class="van-field">
+        <label class="van-field__label">名称</label>
+        <input type="text" class="van-field__control" placeholder="请输入服装名称" v-model="newClothesName">
+      </div>
+      
+      <div class="tag-group">
+        <h3 class="tag-group-title">标签</h3>
+        
+        <div class="tag-group">
+          <label class="block text-sm mb-2">分类</label>
+          <van-dropdown-menu>
+            <van-dropdown-item 
+              v-model="newClothesCategory" 
+              :options="categoryOptions"
+              placeholder="请选择分类"
+            ></van-dropdown-item>
+          </van-dropdown-menu>
+        </div>
+        
+        <div class="tag-group">
+          <label class="block text-sm mb-2">穿搭场景</label>
+          <van-dropdown-menu>
+            <van-dropdown-item 
+              v-model="newClothesScene" 
+              :options="sceneOptions"
+              placeholder="请选择场景"
+            ></van-dropdown-item>
+          </van-dropdown-menu>
+        </div>
+        
+        <div class="tag-group">
+          <label class="block text-sm mb-2">风格</label>
+          <van-dropdown-menu>
+            <van-dropdown-item 
+              v-model="newClothesStyle" 
+              :options="styleOptions"
+              placeholder="请选择风格"
+            ></van-dropdown-item>
+          </van-dropdown-menu>
+        </div>
+        
+        <div class="tag-group">
+          <label class="block text-sm mb-2">季节</label>
+          <van-dropdown-menu>
+            <van-dropdown-item 
+              v-model="newClothesSeason" 
+              :options="seasonOptions"
+              placeholder="请选择季节"
+            ></van-dropdown-item>
+          </van-dropdown-menu>
+        </div>
+        
+        <div class="tag-group">
+          <label class="block text-sm mb-2">色系</label>
+          <van-dropdown-menu>
+            <van-dropdown-item 
+              v-model="newClothesColor" 
+              :options="colorOptions"
+              placeholder="请选择色系"
+            ></van-dropdown-item>
+          </van-dropdown-menu>
+        </div>
+        
+        <div class="tag-group">
+          <label class="block text-sm mb-2">价格</label>
+          <div class="flex items-center">
+            <button class="van-button van-button--default van-button--mini" @click="decreasePrice">-</button>
+            <input type="number" class="mx-2 text-center w-16" v-model="newClothesPrice">
+            <button class="van-button van-button--default van-button--mini" @click="increasePrice">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <button class="van-button van-button--primary w-full mt-8" @click="saveToWardrobe">保存到衣橱</button>
+  </div>
+</div>
+
     <!-- 筛选弹窗 -->
     <van-popup v-model:show="filterPopupShow" position="bottom" :style="{ height: '30%' }">
       <div class="p-4">
@@ -1050,6 +1175,54 @@
           selectedClothes: [],
           isDeleteMode: false,
           currentClothes: null,
+
+          // 新增：与新页面相关的数据
+          newClothesImg: '',
+          newClothesName: '',
+          newClothesCategory: '',
+          newClothesScene: '',
+          newClothesStyle: '',
+          newClothesSeason: '',
+          newClothesColor: '',
+          newClothesPrice: 100, // 默认价格为100
+
+          // 选择器选项数据
+          categoryOptions: [
+            { text: '上装', value: 'top' },
+            { text: '裤装', value: 'pants' },
+            { text: '裙装', value: 'skirt' },
+            { text: '短袖', value: 'short' },
+            { text: '长袖', value: 'long' },
+            { text: '外套', value: 'coat' },
+            { text: '鞋子', value: 'shoes' },
+            { text: '吊带', value: 'sling' },
+            { text: '露肩', value: 'offshoulder' },
+            { text: '其他', value: 'other' }
+          ],
+          sceneOptions: [
+            { text: '商务休闲', value: 'business' },
+            { text: '简约通勤', value: 'casual' },
+            { text: '朋友聚会', value: 'party' },
+            { text: '运动健身', value: 'sports' }
+          ],
+          styleOptions: [
+            { text: '都市街头', value: 'street' },
+            { text: '轻熟优雅', value: 'elegant' },
+            { text: '活力运动', value: 'dynamic' }
+          ],
+          seasonOptions: [
+            { text: '春季', value: 'spring' },
+            { text: '夏季', value: 'summer' },
+            { text: '秋季', value: 'autumn' },
+            { text: '冬季', value: 'winter' }
+          ],
+          colorOptions: [
+            { text: '深色', value: 'dark' },
+            { text: '浅色', value: 'light' },
+            { text: '亮色', value: 'bright' }
+          ],
+
+
           
           collectedClothes: [],
           
@@ -1096,44 +1269,24 @@
           
           currentFont: 'black',
           currentLanguage: 'zh-CN'
+
+          
         };
       },
-      async mounted() {
+      mounted() {
         this.pageHistory.push('splashPage');
-        
-        // 检查是否已登录
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          try {
-            const apiModule = await import('./api.js');
-            const user = await apiModule.userAPI.getCurrentUser();
-            this.nickname = user.nickname || user.phone;
-            this.userAvatar = user.avatar_url || this.userAvatar;
-            this.loadUserData();
-            // 已登录，直接跳转到首页
-            setTimeout(() => {
-              this.showPage('homePage');
-            }, 1000);
-          } catch (error) {
-            // token 无效，清除并显示登录页
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-          }
-        }
         
         const timer = setInterval(() => {
           this.countdown--;
           this.skipText = `跳过 ${this.countdown}s`;
           if (this.countdown <= 0) {
             clearInterval(timer);
-            if (!token) {
-              this.goToLogin();
-            }
+            this.goToLogin();
           }
         }, 1000);
         
-        // 加载衣物列表
-        this.loadGarments();
+        this.filteredClothes = [...this.clothesList];
+        this.collectedClothes = [this.clothesList[0], this.clothesList[2], this.clothesList[4]];
       },
       methods: {
         showPage(pageId) {
@@ -1206,7 +1359,7 @@
           vant.Toast.success('验证码已发送');
         },
         
-        async login() {
+        login() {
           if (!this.phone) {
             vant.Toast('请输入手机号码');
             return;
@@ -1219,37 +1372,10 @@
             vant.Toast('请输入验证码');
             return;
           }
-
-          try {
-            vant.Toast.loading({ message: '登录中...', duration: 0, forbidClick: true });
-            
-            if (this.isPwdLogin) {
-              // 密码登录
-              const { authAPI } = await import('./api.js');
-              await authAPI.login(this.phone, this.password);
-              
-              // 获取用户信息
-              const { userAPI } = await import('./api.js');
-              const user = await userAPI.getCurrentUser();
-              this.nickname = user.nickname || user.phone;
-              this.userAvatar = user.avatar_url || this.userAvatar;
-              
-              vant.Toast.clear();
-              vant.Toast.success('登录成功');
-              this.showPage('homePage');
-              this.loadUserData();
-            } else {
-              // 验证码登录（暂时提示）
-              vant.Toast.clear();
-              vant.Toast('验证码登录功能开发中，请使用密码登录');
-            }
-          } catch (error) {
-            vant.Toast.clear();
-            vant.Toast.fail(error.message || '登录失败');
-          }
+          this.showPage('homePage');
         },
         
-        async register() {
+        register() {
           if (!this.regPhone) {
             vant.Toast('请输入手机号码');
             return;
@@ -1262,20 +1388,8 @@
             vant.Toast('请输入密码');
             return;
           }
-
-          try {
-            vant.Toast.loading({ message: '注册中...', duration: 0, forbidClick: true });
-            
-            const apiModule = await import('./api.js');
-            await apiModule.authAPI.register(this.regPhone, this.regPassword, `用户${this.regPhone.slice(-4)}`);
-            
-            vant.Toast.clear();
-            vant.Toast.success('注册成功，请登录');
-            this.showPage('loginPage');
-          } catch (error) {
-            vant.Toast.clear();
-            vant.Toast.fail(error.message || '注册失败');
-          }
+          vant.Toast.success('注册成功');
+          this.showPage('loginPage');
         },
         
         goToSmartWardrobe() {
@@ -1366,16 +1480,19 @@
           vant.Toast('取消收藏成功');
         },
         
-        async filterCategory(category) {
+        filterCategory(category) {
           // 更新分类按钮状态
           document.querySelectorAll('.category-btn').forEach(btn => {
             btn.classList.remove('active');
           });
-          const btn = document.querySelector(`.category-btn[onclick="app.filterCategory('${category}')"]`);
-          if (btn) btn.classList.add('active');
+          document.querySelector(`.category-btn[onclick="app.filterCategory('${category}')"]`).classList.add('active');
           
-          // 重新加载衣物列表
-          await this.loadGarments(category);
+          // 筛选衣物
+          if (category === 'all') {
+            this.filteredClothes = [...this.clothesList];
+          } else {
+            this.filteredClothes = this.clothesList.filter(item => item.category === category);
+          }
         },
         
         toggleTag(type, value) {
@@ -1559,18 +1676,7 @@
           vant.Dialog.confirm({
             title: '提示',
             message: '确定要退出登录吗？'
-          }).then(async () => {
-            const apiModule = await import('./api.js');
-            apiModule.authAPI.logout();
-            
-            // 清空数据
-            this.clothesList = [];
-            this.filteredClothes = [];
-            this.collectedClothes = [];
-            this.historyList = [];
-            this.nickname = '用户';
-            this.userAvatar = 'https://picsum.photos/seed/avatar/100/100';
-            
+          }).then(() => {
             // 清空历史记录，确保返回登录页面后无法返回
             this.pageHistory = ['loginPage'];
             this.showPage('loginPage');
@@ -1599,7 +1705,7 @@
           vant.Toast(`已设置为${lang === 'zh-CN' ? '简体中文' : lang === 'zh-TW' ? '繁体中文' : '英文'}`);
         },
         
-        async resetPassword() {
+        resetPassword() {
           if (!this.oldPwd) {
             vant.Toast('请输入原密码');
             return;
@@ -1612,106 +1718,146 @@
             vant.Toast('两次输入的密码不一致');
             return;
           }
-
-          try {
-            vant.Toast.loading({ message: '修改中...', duration: 0, forbidClick: true });
-            
-            const apiModule = await import('./api.js');
-            await apiModule.userAPI.updatePassword(this.oldPwd, this.newPwd);
-            
-            vant.Toast.clear();
-            vant.Toast.success('密码修改成功');
-            this.oldPwd = '';
-            this.newPwd = '';
-            this.confirmPwd = '';
-            this.goToSettings();
-          } catch (error) {
-            vant.Toast.clear();
-            vant.Toast.fail(error.message || '密码修改失败');
-          }
+          vant.Toast.success('密码重置成功');
+          this.goToSettings();
         },
 
-        // 加载用户数据
-        async loadUserData() {
-          try {
-            await Promise.all([
-              this.loadGarments(),
-              this.loadHistory(),
-              this.loadFavorites(),
-            ]);
-          } catch (error) {
-            console.error('加载用户数据失败:', error);
-          }
-        },
+        goToAddClothesPage() {
+    // 跳转到新增衣物页面
+    this.showPage('addClothesPage');
+  },
+  
+  // 从相册选择图片
+  selectFromAlbum() {
+    // 触发文件选择对话框
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        this.handleClothesImageUpload(file);
+      }
+    };
+    fileInput.click();
+  },
+  
+  // 拍摄照片
+  takePhoto() {
+    // 检查设备是否支持摄像头
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      vant.Toast('您的设备不支持摄像头功能');
+      return;
+    }
+    
+    // 创建相机拍摄对话框
+    vant.Dialog.alert({
+      title: '提示',
+      message: '相机功能将在实际设备上启用',
+      confirmButtonText: '确定'
+    }).then(() => {
+      // 模拟拍摄照片
+      const timestamp = new Date().getTime();
+      this.newClothesImg = `https://picsum.photos/seed/clothes-${timestamp}/300/300`;
+    });
+  },
+  
+  // 处理衣物图片上传
+  handleClothesImageUpload(file) {
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      vant.Toast('请选择图片文件');
+      return;
+    }
+    
+    // 显示加载提示
+    vant.Toast.loading({
+      message: '上传中...',
+      duration: 0,
+      forbidClick: true
+    });
+    
+    // 模拟上传
+    setTimeout(() => {
+      // 创建图片预览URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.newClothesImg = e.target.result;
+        vant.Toast.clear();
+        vant.Toast.success('图片上传成功');
+      };
+      reader.readAsDataURL(file);
+    }, 1000);
+  },
+  
+  // 价格调整方法
+  decreasePrice() {
+    if (this.newClothesPrice > 0) {
+      this.newClothesPrice--;
+    }
+  },
+  
+  increasePrice() {
+    this.newClothesPrice++;
+  },
+  
+  // 保存到衣橱
+  saveToWardrobe() {
+    // 验证表单
+    if (!this.newClothesImg) {
+      vant.Toast('请选择衣物图片');
+      return;
+    }
+    
+    if (!this.newClothesName) {
+      vant.Toast('请输入服装名称');
+      return;
+    }
+    
+    if (!this.newClothesCategory) {
+      vant.Toast('请选择分类');
+      return;
+    }
+    
+    // 创建新衣物对象
+    const newClothes = {
+      id: this.clothesList.length + 1,
+      name: this.newClothesName,
+      desc: `${this.getOptionText(this.categoryOptions, this.newClothesCategory)} · ${this.getOptionText(this.seasonOptions, this.newClothesSeason)} · ${this.getOptionText(this.colorOptions, this.newClothesColor)}`,
+      category: this.newClothesCategory,
+      price: this.newClothesPrice,
+      imgUrl: this.newClothesImg,
+      season: this.newClothesSeason ? [this.newClothesSeason] : [],
+      color: this.newClothesColor || ''
+    };
+    
+    // 添加到衣物列表
+    this.clothesList.push(newClothes);
+    this.filteredClothes = [...this.clothesList];
+    
+    // 重置表单
+    this.newClothesImg = '';
+    this.newClothesName = '';
+    this.newClothesCategory = '';
+    this.newClothesScene = '';
+    this.newClothesStyle = '';
+    this.newClothesSeason = '';
+    this.newClothesColor = '';
+    this.newClothesPrice = 3;
+    
+    // 提示并返回衣橱页面
+    vant.Toast.success('成功添加到衣橱');
+    this.goBackToPrevious();
+  },
+  
+  // 辅助方法：根据值获取选项文本
+  getOptionText(options, value) {
+    if (!value) return '';
+    const option = options.find(opt => opt.value === value);
+    return option ? option.text : '';
+  }
 
-        // 加载衣物列表
-        async loadGarments(category = 'all') {
-          try {
-            const apiModule = await import('./api.js');
-            const params = {};
-            if (category !== 'all') {
-              params.category = category;
-            }
-            const garments = await apiModule.wardrobeAPI.getGarments(params);
-            
-            // 转换数据格式
-            this.clothesList = garments.map(item => ({
-              id: item.id,
-              name: item.name,
-              desc: `${item.style || ''} ${item.colorway || ''}`.trim() || '无描述',
-              category: item.category,
-              price: item.price || 0,
-              imgUrl: item.image_url || 'https://picsum.photos/seed/default/200/120',
-              season: item.season ? [item.season.toLowerCase()] : [],
-              color: item.colorway ? item.colorway.toLowerCase() : 'light',
-            }));
-            
-            this.filteredClothes = [...this.clothesList];
-          } catch (error) {
-            console.error('加载衣物列表失败:', error);
-            vant.Toast.fail('加载衣物列表失败');
-          }
-        },
 
-        // 加载历史记录
-        async loadHistory() {
-          try {
-            const apiModule = await import('./api.js');
-            const history = await apiModule.recordsAPI.getHistory(1, 10);
-            
-            // 转换数据格式
-            this.historyList = history.map(record => ({
-              time: new Date(record.created_at).toLocaleString('zh-CN'),
-              items: record.garment_ids.map((id, idx) => {
-                const garment = this.clothesList.find(g => g.id === id);
-                return garment || {
-                  id,
-                  name: '未知衣物',
-                  desc: '',
-                  imgUrl: 'https://picsum.photos/seed/default/200/120',
-                };
-              }),
-            }));
-          } catch (error) {
-            console.error('加载历史记录失败:', error);
-          }
-        },
-
-        // 加载收藏
-        async loadFavorites() {
-          try {
-            const apiModule = await import('./api.js');
-            const favorites = await apiModule.recordsAPI.getFavorites(1, 20);
-            
-            // 转换数据格式
-            this.collectedClothes = favorites.map(fav => {
-              const garment = this.clothesList.find(g => g.id === fav.record_id);
-              return garment || null;
-            }).filter(Boolean);
-          } catch (error) {
-            console.error('加载收藏失败:', error);
-          }
-        }
       }
     });
     
@@ -1720,4 +1866,4 @@
     app.mount('#app');
   </script>
 </body>
-</html>
+</html> 

@@ -1,0 +1,5 @@
+POST http://127.0.0.1:8000/predict/vt
+Form data: {'preprocess_garment': 'false', 'step': '30', 'scale': '2.5', 'seed': '42', 'vt_model_type': 'viton_hd', 'vt_garment_type': 'upper_body'}
+Files:
+  src: C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\scripts\..\uploads\avatars\202512\11_39564e163eaa41369153d64eea8a5cd4.jpg size=2229 bytes
+  ref: C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\scripts\..\uploads\garments\202512\11_226f7b8995a04682ae2bb14b0499fd40.jpg size=2228 bytes (sent as JPEG)

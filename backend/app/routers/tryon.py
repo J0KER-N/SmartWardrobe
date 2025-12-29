@@ -1,70 +1,105 @@
-import base64
-
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
 from sqlalchemy.orm import Session
+from typing import Dict
 
-from .. import schemas
-from ..dependencies import get_current_user, get_db
-from ..models import Garment, TryOnRecord, TryOnStatus, User
-from ..services import ai_clients
-from ..services.image_storage import build_public_url, save_temp_image
+from ..database import get_db
+from ..models import User, Garment, TryonRecord
+from ..schemas import TryonCreate, TryonResponse, BaseResponse
+from ..dependencies import get_current_user
+from ..services.ai_clients import generate_tryon, AIClientError
+from ..services.image_storage import save_tryon_image, save_image
 
-router = APIRouter(prefix="/tryon", tags=["try-on"])
+router = APIRouter(prefix="/tryon", tags=["虚拟试穿"])
 
-
-@router.post("/generate", response_model=schemas.TryOnResponse)
-async def generate_tryon(
-    payload: schemas.TryOnRequest,
-    user_photo: UploadFile = File(...),
+@router.post("/generate", response_model=TryonResponse)
+def generate_tryon_image(
+    garment_id: int = Form(...),
+    user_photo: UploadFile | None = File(None),
+    user_photo_url: str | None = Form(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
-    garments = (
-        db.query(Garment)
-        .filter(Garment.id.in_(payload.garment_ids), Garment.owner_id == current_user.id, Garment.is_deleted.is_(False))
-        .all()
-    )
-    if len(garments) != len(payload.garment_ids):
-        raise HTTPException(status_code=404, detail="Some garments not found")
-
-    user_image_bytes = await user_photo.read()
-    if not user_image_bytes:
-        raise HTTPException(status_code=400, detail="Empty user image")
-
-    garment_images = []
-    for garment in garments:
-        if not garment.image_url:
-            raise HTTPException(status_code=400, detail=f"Garment {garment.id} missing image")
-        with open(garment.image_url, "rb") as fh:
-            garment_images.append(base64.b64encode(fh.read()).decode("utf-8"))
-
-    record = TryOnRecord(user_id=current_user.id, garment_ids=payload.garment_ids, status=TryOnStatus.pending)
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-
-    try:
-        result_b64 = await ai_clients.generate_tryon(
-            user_image_b64=base64.b64encode(user_image_bytes).decode("utf-8"),
-            garment_images=garment_images,
-            prompt=payload.prompt,
+    """生成虚拟试穿图片。支持 multipart/form-data 上传 `user_photo`，或传入 `user_photo_url`。"""
+    # 检查衣物是否存在
+    garment = db.query(Garment).filter(
+        Garment.id == garment_id,
+        Garment.owner_id == current_user.id,
+        Garment.is_deleted == False
+    ).first()
+    
+    if not garment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="衣物不存在"
         )
-        image_bytes = base64.b64decode(result_b64)
-        path = save_temp_image(image_bytes, suffix=".png")
-        record.result_image_url = build_public_url(path)
-        record.status = TryOnStatus.completed
-    except Exception as exc:
-        record.status = TryOnStatus.failed
-        record.meta_data = {"error": str(exc)}
+    
+    try:
+        # 准备 user_photo_url：优先使用上传图片，其次使用传入的 URL
+        resolved_user_photo_url = None
+        if user_photo is not None:
+            # 将上传的用户照片保存为普通图片，并使用其 URL
+            resolved_user_photo_url = save_image(user_photo, current_user.id)
+        elif user_photo_url:
+            resolved_user_photo_url = user_photo_url
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="必须提供 user_photo 或 user_photo_url")
+
+        # 调用AI生成试穿图片
+        tryon_result = generate_tryon(
+            user_photo_url=resolved_user_photo_url,
+            garment_image_url=garment.image_url
+        )
+        
+        # 保存试穿图片
+        tryon_image_url = save_tryon_image(tryon_result["image_data"], current_user.id)
+        
+        # 创建试穿记录
+        tryon_record = TryonRecord(
+            owner_id=current_user.id,
+            garment_id=garment.id,
+            user_photo_url=resolved_user_photo_url,
+            tryon_image_url=tryon_image_url,
+            tryon_status="success"
+        )
+        db.add(tryon_record)
         db.commit()
-        raise HTTPException(status_code=500, detail="Try-on generation failed") from exc
+        db.refresh(tryon_record)
+        
+        return tryon_record
+    
+    except AIClientError as e:
+        # 记录失败状态
+        tryon_record = TryonRecord(
+            owner_id=current_user.id,
+            garment_id=garment.id,
+            user_photo_url=resolved_user_photo_url,
+            tryon_image_url="",
+            tryon_status="failed"
+        )
+        db.add(tryon_record)
+        db.commit()
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"生成试穿图片失败: {str(e)}"
+        )
 
-    db.commit()
-    db.refresh(record)
-    return schemas.TryOnResponse(
-        record_id=record.id,
-        status=record.status.value,
-        result_image_url=record.result_image_url,
-        created_at=record.created_at,
-    )
-
+@router.get("/records/{record_id}", response_model=TryonResponse)
+def get_tryon_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取试穿记录"""
+    record = db.query(TryonRecord).filter(
+        TryonRecord.id == record_id,
+        TryonRecord.owner_id == current_user.id
+    ).first()
+    
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="试穿记录不存在"
+        )
+    
+    return record

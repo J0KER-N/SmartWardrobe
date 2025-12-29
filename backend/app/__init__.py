@@ -1,4 +1,11 @@
-"""Smart Wardrobe backend package."""
+"""Package initializer for the backend `app` package."""
 
-__all__ = ["main"]
-
+__all__ = [
+    "config",
+    "database",
+    "models",
+    "schemas",
+    "security",
+    "routers",
+    "services",
+]
