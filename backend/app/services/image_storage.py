@@ -26,10 +26,21 @@ init_storage()
 # 图片校验
 def validate_image(file: UploadFile) -> None:
     """校验图片格式和大小"""
-    # 校验格式
-    allowed_formats = ["image/jpeg", "image/png", "image/jpg"]
+    # 校验格式（支持更多格式）
+    allowed_formats = ["image/jpeg", "image/png", "image/jpg", "image/webp"]
+    # 如果content_type为空，尝试从文件名判断
+    if not file.content_type:
+        if file.filename:
+            ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+            ext_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
+            inferred_type = ext_map.get(ext)
+            if inferred_type:
+                logger.warning(f"文件 {file.filename} 缺少content_type，从扩展名推断为 {inferred_type}")
+                return  # 允许通过
+        raise HTTPException(status_code=400, detail=f"无法识别图片格式，仅支持{allowed_formats}格式图片")
+    
     if file.content_type not in allowed_formats:
-        raise HTTPException(status_code=400, detail=f"仅支持{allowed_formats}格式图片")
+        raise HTTPException(status_code=400, detail=f"仅支持{allowed_formats}格式图片，当前格式: {file.content_type}")
     
     # 校验大小
     file.file.seek(0, os.SEEK_END)
@@ -55,7 +66,15 @@ def compress_image(image: Image, quality: int = 85) -> Image:
 def _save_local(file: UploadFile, user_id: int, sub_dir: str) -> str:
     """本地存储图片"""
     # 生成唯一文件名
-    file_ext = file.filename.split(".")[-1]
+    # 从文件名或content_type获取扩展名
+    if file.filename:
+        file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
+    else:
+        # 从content_type推断扩展名
+        content_type = file.content_type or "image/jpeg"
+        ext_map = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp"}
+        file_ext = ext_map.get(content_type, "jpg")
+    
     file_name = f"{user_id}_{uuid.uuid4().hex}.{file_ext}"
     # 构建存储路径
     date_dir = datetime.now().strftime("%Y%m")

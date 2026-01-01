@@ -1,5 +1,7 @@
 // API基础配置
-const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+// 在浏览器环境中不能使用 process.env，直接使用默认值
+// 如果需要修改，可以直接改这里的值，或者通过 window.API_BASE_URL 覆盖
+const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || 'http://127.0.0.1:8000';
 
 // Token管理
 const TOKEN_KEY = 'smart_wardrobe_access_token';
@@ -44,10 +46,17 @@ async function request(url, options = {}) {
     }
 
     try {
+        console.log(`[API请求] ${options.method || 'GET'} ${API_BASE_URL}${url}`, {
+            headers,
+            body: options.body instanceof FormData ? '[FormData]' : options.body
+        });
+        
         const response = await fetch(`${API_BASE_URL}${url}`, {
             ...options,
             headers,
         });
+
+        console.log(`[API响应] ${response.status} ${response.statusText}`, response);
 
         // 处理401错误（Token过期）
         if (response.status === 401 && getRefreshToken()) {
@@ -92,10 +101,19 @@ async function request(url, options = {}) {
 
 // 响应处理
 async function handleResponse(response) {
-    const data = await response.json().catch(() => ({}));
+    let data;
+    try {
+        const text = await response.text();
+        console.log(`[响应内容]`, text);
+        data = text ? JSON.parse(text) : {};
+    } catch (e) {
+        console.error('[响应解析失败]', e);
+        data = {};
+    }
     
     if (!response.ok) {
         const errorMsg = data.detail || data.message || `请求失败 (${response.status})`;
+        console.error(`[API错误] ${response.status}:`, errorMsg, data);
         throw new Error(errorMsg);
     }
     
@@ -244,7 +262,7 @@ const api = {
         },
         // 更新个人信息
         updateProfile: async (profileData) => {
-            return request('/profile/update', {
+            return request('/profile/me', {
                 method: 'PUT',
                 body: JSON.stringify(profileData),
             });
@@ -287,5 +305,9 @@ const api = {
     },
 };
 
-// 暴露API对象
+// 暴露API对象和配置
 window.api = api;
+// 暴露API_BASE_URL供外部使用
+if (typeof window !== 'undefined') {
+    window.API_BASE_URL = API_BASE_URL;
+}

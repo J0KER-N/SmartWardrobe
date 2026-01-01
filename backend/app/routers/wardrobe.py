@@ -29,6 +29,8 @@ def create_garment(
 
         # 自动生成标签（auto_tag_garment 会重置 file 指针）
         auto_tags = auto_tag_garment(file)
+        # 过滤掉错误标签（AI服务未配置或失败时返回的错误标签）
+        auto_tags = [tag for tag in auto_tags if tag and tag.strip() and tag not in ["未识别标签", "标签识别失败"]]
 
         # 保存图片
         image_url = save_image(file, current_user.id)

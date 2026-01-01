@@ -6,6 +6,7 @@ from typing import Dict
 from fastapi import FastAPI, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from .config import get_settings
@@ -91,6 +92,16 @@ else:
 
 app.include_router(records.router)
 app.include_router(profile.router)
+
+# 配置静态文件服务（用于访问上传的图片）
+if settings.object_storage_type == "local":
+    import os
+    uploads_path = os.path.abspath(settings.image_storage_path)
+    if os.path.exists(uploads_path):
+        app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+        logger.info(f"静态文件服务已启用 | 路径: {uploads_path}")
+    else:
+        logger.warning(f"上传目录不存在: {uploads_path}，静态文件服务未启用")
 
 # 健康检查接口
 @app.get("/health", tags=["健康检查"])

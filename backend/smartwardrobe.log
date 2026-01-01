@@ -369,3 +369,91 @@ For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/St
 2025-12-25 18:38:15,326 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
 2025-12-25 18:38:15,344 - app.services.weather - WARNING - 天气API密钥未配置或为占位符，返回模拟数据
 2025-12-25 18:38:15,350 - app.services.ai_clients - INFO - 调用百川大模型生成穿搭文案
+2025-12-30 01:23:57,199 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-30 01:23:57,206 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-30 01:23:57,220 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-30 01:23:57,224 - app.main - INFO - 数据库表初始化完成
+2025-12-30 01:33:09,934 - app.main - INFO - 应用已关闭
+2025-12-30 10:47:06,617 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-30 10:47:06,625 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-30 10:47:06,636 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-30 10:47:06,644 - app.main - INFO - 数据库表初始化完成
+2025-12-30 10:48:37,070 - app.main - INFO - 应用已关闭
+2025-12-30 10:52:22,460 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-30 10:52:22,469 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-30 10:52:22,482 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-30 10:52:22,484 - app.main - INFO - 数据库表初始化完成
+2025-12-30 10:53:04,596 - app.main - INFO - 应用已关闭
+2025-12-30 11:05:56,503 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2025-12-30 11:05:56,508 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2025-12-30 11:05:56,516 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2025-12-30 11:05:56,517 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:00:15,310 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 18:00:15,317 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 18:00:15,328 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 18:00:15,337 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:11:11,431 - app.main - INFO - 应用已关闭
+2026-01-01 18:11:15,231 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 18:11:15,237 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 18:11:15,246 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 18:11:15,248 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:40:14,699 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 18:40:14,706 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 18:40:14,716 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 18:40:14,718 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:41:11,063 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:41:11,075 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:47:22,235 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:47:22,241 - app.services.ai_clients - INFO - 调用FashionCLIP标签识别服务
+2026-01-01 18:47:22,851 - app.services.ai_clients - ERROR - FashionCLIP调用失败: 连接失败: [Errno 11001] getaddrinfo failed
+2026-01-01 18:47:22,945 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:49:32,861 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:49:33,196 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:49:51,949 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:49:51,958 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:50:48,560 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:50:48,564 - app.services.ai_clients - INFO - 调用FashionCLIP标签识别服务
+2026-01-01 18:50:48,970 - app.services.ai_clients - ERROR - FashionCLIP调用失败: 连接失败: [Errno 11001] getaddrinfo failed
+2026-01-01 18:50:49,005 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:52:21,619 - app.main - INFO - 应用已关闭
+2026-01-01 18:52:23,613 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 18:52:23,627 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 18:52:23,642 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 18:52:23,646 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:54:42,913 - app.main - INFO - 应用已关闭
+2026-01-01 18:54:44,058 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 18:54:44,065 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 18:54:44,073 - app.main - INFO - 静态文件服务已启用 | 路径: C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\uploads
+2026-01-01 18:54:44,075 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 18:54:44,078 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:54:45,349 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 18:54:45,359 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 18:54:45,374 - app.main - INFO - 静态文件服务已启用 | 路径: C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\uploads
+2026-01-01 18:54:45,377 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 18:54:45,381 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:55:27,767 - app.main - INFO - 应用已关闭
+2026-01-01 18:55:30,502 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 18:55:30,509 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 18:55:30,515 - app.main - INFO - 静态文件服务已启用 | 路径: C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\uploads
+2026-01-01 18:55:30,516 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 18:55:30,518 - app.main - INFO - 数据库表初始化完成
+2026-01-01 18:55:33,480 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:55:33,931 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:55:47,544 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:55:47,554 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:58:23,191 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 18:58:23,195 - app.services.ai_clients - INFO - 调用FashionCLIP标签识别服务
+2026-01-01 18:58:23,773 - app.services.ai_clients - ERROR - FashionCLIP调用失败: 连接失败: [Errno 11001] getaddrinfo failed
+2026-01-01 18:58:23,827 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 19:14:03,170 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 19:14:03,170 - app.security - WARNING - Token expired beyond allowed clock skew
+2026-01-01 19:14:03,386 - app.main - INFO - 应用已关闭
+2026-01-01 19:14:05,281 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-01 19:14:05,288 - app.main - INFO - tryon 路由已禁用（ENABLE_TRYON=False）
+2026-01-01 19:14:05,296 - app.main - INFO - 静态文件服务已启用 | 路径: C:\Users\23708\Desktop\smart-wardrobe-system-test\backend\uploads
+2026-01-01 19:14:05,298 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-01 19:14:05,301 - app.main - INFO - 数据库表初始化完成
+2026-01-01 19:14:05,315 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 19:14:05,335 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 19:14:17,096 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证
+2026-01-01 19:14:17,101 - app.security - WARNING - JWT 过期，尝试使用时钟偏差容忍进行二次验证

@@ -9,6 +9,8 @@
   <link href="https://cdn.jsdelivr.net/npm/vant@4/lib/index.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vant@4/lib/vant.min.js"></script>
+  <!-- 引入API文件 -->
+  <script src="api.js"></script>
   <style>
     /* 全局样式 */
     body {
@@ -437,7 +439,7 @@
           <div class="bg-gray-100 rounded-lg p-3 clothes-item" @click="goToClothesDetail(item.id)" v-for="item in filteredClothes" :key="item.id">
             <van-checkbox v-if="isDeleteMode" class="clothes-checkbox" v-model="selectedClothes" :name="item.id"></van-checkbox>
             <div class="img-container">
-              <img :src="item.imgUrl" :alt="item.name">
+              <img :src="getImageUrl(item.imgUrl)" :alt="item.name">
             </div>
             <div class="text-center">
               <div class="text-sm">{{ item.name }}</div>
@@ -613,14 +615,14 @@
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-gray-100 rounded p-2 text-center clothes-item" @click="goToClothesDetail(history.items[0].id)">
                 <div class="img-container h-24">
-                  <img :src="history.items[0].imgUrl" :alt="history.items[0].name">
+                  <img :src="getImageUrl(history.items[0].imgUrl)" :alt="history.items[0].name">
                 </div>
                 <div class="text-sm">{{ history.items[0].name }}</div>
                 <div class="text-xs text-gray-500 mt-1">{{ history.items[0].desc }}</div>
               </div>
               <div class="bg-gray-100 rounded p-2 text-center clothes-item" @click="goToClothesDetail(history.items[1].id)">
                 <div class="img-container h-24">
-                  <img :src="history.items[1].imgUrl" :alt="history.items[1].name">
+                  <img :src="getImageUrl(history.items[1].imgUrl)" :alt="history.items[1].name">
                 </div>
                 <div class="text-sm">{{ history.items[1].name }}</div>
                 <div class="text-xs text-gray-500 mt-1">{{ history.items[1].desc }}</div>
@@ -667,7 +669,7 @@
       <div class="content">
         <div class="bg-gray-100 rounded-lg p-4 mb-6">
           <div class="img-container mb-4">
-            <img v-if="currentClothes" :src="currentClothes.imgUrl" :alt="currentClothes.name">
+            <img v-if="currentClothes" :src="getImageUrl(currentClothes.imgUrl)" :alt="currentClothes.name">
             <img v-else src="https://picsum.photos/seed/default-clothes/300/150" alt="服装图片">
           </div>
           <div class="grid grid-cols-2 gap-4 mb-4">
@@ -805,7 +807,7 @@
         <div class="grid grid-cols-2 gap-4" v-if="collectedClothes.length > 0">
           <div class="bg-gray-100 rounded-lg p-3 clothes-item" @click="goToClothesDetail(item.id)" v-for="item in collectedClothes" :key="item.id">
             <div class="img-container">
-              <img :src="item.imgUrl" :alt="item.name">
+              <img :src="getImageUrl(item.imgUrl)" :alt="item.name">
             </div>
             <div class="text-center">
               <div class="text-sm font-medium">{{ item.name }}</div>
@@ -1121,6 +1123,85 @@
 
   <script>
     const { createApp } = Vue;
+    
+    // Vant 4 Toast 兼容性封装
+    const Toast = {
+      loading: (options) => {
+        if (typeof vant.showLoadingToast === 'function') {
+          return vant.showLoadingToast(options);
+        } else if (typeof vant.Toast?.loading === 'function') {
+          return vant.Toast.loading(options);
+        } else {
+          return vant.Toast({ type: 'loading', ...options });
+        }
+      },
+      success: (message) => {
+        if (typeof vant.showSuccessToast === 'function') {
+          vant.showSuccessToast(message);
+        } else if (typeof vant.Toast?.success === 'function') {
+          vant.Toast.success(message);
+        } else {
+          vant.Toast({ type: 'success', message });
+        }
+      },
+      fail: (message) => {
+        if (typeof vant.showFailToast === 'function') {
+          vant.showFailToast(message);
+        } else if (typeof vant.Toast?.fail === 'function') {
+          vant.Toast.fail(message);
+        } else {
+          vant.Toast({ type: 'fail', message });
+        }
+      },
+      close: () => {
+        if (typeof vant.closeToast === 'function') {
+          vant.closeToast();
+        } else if (typeof vant.Toast?.clear === 'function') {
+          vant.Toast.clear();
+        }
+      }
+    };
+    
+    // Vant 4 Dialog 兼容性封装
+    const Dialog = {
+      confirm: (options) => {
+        if (typeof vant.showConfirmDialog === 'function') {
+          return vant.showConfirmDialog(options).catch(err => {
+            // Vant 4 取消时会 reject，统一处理为 'cancel'
+            if (err === 'cancel' || err === 'close' || err === undefined) {
+              throw 'cancel';
+            }
+            throw err;
+          });
+        } else if (typeof vant.Dialog?.confirm === 'function') {
+          return vant.Dialog.confirm(options).catch(err => {
+            if (err === 'cancel' || err === 'close' || err === undefined) {
+              throw 'cancel';
+            }
+            throw err;
+          });
+        } else {
+          return new Promise((resolve, reject) => {
+            if (confirm(options.message || '确认操作？')) {
+              resolve();
+            } else {
+              reject('cancel');
+            }
+          });
+        }
+      },
+      alert: (options) => {
+        if (typeof vant.showDialog === 'function') {
+          return vant.showDialog(options);
+        } else if (typeof vant.Dialog?.alert === 'function') {
+          return vant.Dialog.alert(options);
+        } else {
+          alert(options.message || '提示');
+          return Promise.resolve();
+        }
+      }
+    };
+    
     const app = createApp({
       data() {
         return {
@@ -1178,6 +1259,7 @@
 
           // 新增：与新页面相关的数据
           newClothesImg: '',
+          newClothesImgFile: null, // 保存文件对象用于上传
           newClothesName: '',
           newClothesCategory: '',
           newClothesScene: '',
@@ -1273,8 +1355,26 @@
           
         };
       },
-      mounted() {
+      async mounted() {
         this.pageHistory.push('splashPage');
+        
+        // 检查是否已登录
+        const token = window.api && window.api.getToken();
+        if (token) {
+          try {
+            const userInfo = await window.api.profileAPI.getProfile();
+            this.nickname = userInfo.nickname || '用户';
+            this.userAvatar = userInfo.avatar_url || 'https://picsum.photos/seed/avatar/100/100';
+            // 加载衣物列表
+            await this.loadGarments();
+          } catch (error) {
+            console.error('加载用户信息失败:', error);
+            // Token无效，清除并继续启动流程
+            if (window.api) {
+              window.api.clearToken();
+            }
+          }
+        }
         
         const timer = setInterval(() => {
           this.countdown--;
@@ -1285,36 +1385,55 @@
           }
         }, 1000);
         
-        this.filteredClothes = [...this.clothesList];
-        this.collectedClothes = [this.clothesList[0], this.clothesList[2], this.clothesList[4]];
+        // 如果没有从后端加载到数据，使用默认数据
+        if (this.clothesList.length === 0) {
+          this.filteredClothes = [];
+          this.collectedClothes = [];
+        } else {
+          this.filteredClothes = [...this.clothesList];
+          this.collectedClothes = [this.clothesList[0], this.clothesList[2], this.clothesList[4]].filter(Boolean);
+        }
       },
       methods: {
         showPage(pageId) {
-          const currentPage = document.querySelector('.page.active').id;
-          if (currentPage !== pageId) {
+          const currentActivePage = document.querySelector('.page.active');
+          if (currentActivePage && currentActivePage.id !== pageId) {
             this.pageHistory.push(pageId);
           }
           
           document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
           });
-          document.getElementById(pageId).classList.add('active');
+          
+          const targetPage = document.getElementById(pageId);
+          if (targetPage) {
+            targetPage.classList.add('active');
+          } else {
+            console.error(`页面 ${pageId} 不存在`);
+            return;
+          }
           
           const tabItems = document.querySelectorAll('.tabbar-item');
           tabItems.forEach(item => {
             item.classList.remove('active');
           });
           const activeTab = document.querySelector(`.tabbar-item[onclick="app.showPage('${pageId}')"]`);
-          if (activeTab) activeTab.classList.add('active');
+          if (activeTab) {
+            activeTab.classList.add('active');
+          }
         },
         
         goBackToPrevious() {
           if (this.pageHistory.length > 1) {
             this.pageHistory.pop();
             const previousPage = this.pageHistory[this.pageHistory.length - 1];
-            this.showPage(previousPage);
+            if (previousPage) {
+              this.showPage(previousPage);
+            } else {
+              this.showPage('wardrobePage');
+            }
           } else {
-            this.showPage('homePage');
+            this.showPage('wardrobePage');
           }
         },
         
@@ -1345,51 +1464,145 @@
         
         getCode() {
           if (!this.phone) {
-            vant.Toast('请输入手机号码');
+            Toast.fail('请输入手机号码');
             return;
           }
-          vant.Toast.success('验证码已发送');
+          Toast.success('验证码已发送');
         },
         
         getRegCode() {
           if (!this.regPhone) {
-            vant.Toast('请输入手机号码');
+            Toast.fail('请输入手机号码');
             return;
           }
-          vant.Toast.success('验证码已发送');
+          Toast.success('验证码已发送');
         },
         
-        login() {
+        async login() {
           if (!this.phone) {
-            vant.Toast('请输入手机号码');
+            Toast.fail('请输入手机号码');
             return;
           }
           if (this.isPwdLogin && !this.password) {
-            vant.Toast('请输入密码');
+            Toast.fail('请输入密码');
             return;
           }
           if (!this.isPwdLogin && !this.code) {
-            vant.Toast('请输入验证码');
+            Toast.fail('请输入验证码');
             return;
           }
-          this.showPage('homePage');
+          
+          // 目前只支持密码登录
+          if (!this.isPwdLogin) {
+            Toast.fail('验证码登录功能开发中，请使用密码登录');
+            return;
+          }
+          
+          try {
+            // Vant 4 的 Toast.loading 返回一个实例，可以调用 close() 方法
+            // 使用兼容的 Toast API
+            Toast.loading({ 
+              message: '登录中...', 
+              duration: 0, 
+              forbidClick: true 
+            });
+            
+            if (!window.api) {
+              Toast.close();
+              throw new Error('API未加载，请刷新页面重试');
+            }
+            
+            console.log('开始登录，手机号:', this.phone);
+            console.log('API_BASE_URL:', window.API_BASE_URL || 'http://127.0.0.1:8000');
+            
+            const response = await window.api.authAPI.login({
+              phone: this.phone,
+              password: this.password
+            });
+            
+            console.log('登录响应:', response);
+            
+            // 保存token
+            window.api.saveToken(response.access_token, response.refresh_token);
+            
+            // 获取用户信息
+            const userInfo = await window.api.profileAPI.getProfile();
+            console.log('用户信息:', userInfo);
+            this.nickname = userInfo.nickname || '用户';
+            this.userAvatar = userInfo.avatar_url || 'https://picsum.photos/seed/avatar/100/100';
+            
+            // 加载衣物列表
+            await this.loadGarments();
+            
+            // 关闭加载提示
+            Toast.close();
+            Toast.success('登录成功');
+            this.showPage('homePage');
+          } catch (error) {
+            // 尝试关闭可能存在的加载提示
+            Toast.close();
+            console.error('登录失败详情:', error);
+            console.error('错误堆栈:', error.stack);
+            const errorMsg = error.message || '登录失败，请检查手机号和密码';
+            Toast.fail(errorMsg);
+          }
         },
         
-        register() {
+        async register() {
           if (!this.regPhone) {
-            vant.Toast('请输入手机号码');
+            Toast.fail('请输入手机号码');
             return;
           }
           if (!this.regCode) {
-            vant.Toast('请输入验证码');
+            Toast.fail('请输入验证码');
             return;
           }
           if (!this.regPassword) {
-            vant.Toast('请输入密码');
+            Toast.fail('请输入密码');
             return;
           }
-          vant.Toast.success('注册成功');
-          this.showPage('loginPage');
+          
+          // 验证密码格式（至少8位，包含字母和数字）
+          if (this.regPassword.length < 8 || !/[a-zA-Z]/.test(this.regPassword) || !/\d/.test(this.regPassword)) {
+            Toast.fail('密码需至少8位，包含字母和数字');
+            return;
+          }
+          
+          try {
+            Toast.loading({ message: '注册中...', duration: 0, forbidClick: true });
+            
+            if (!window.api) {
+              Toast.close();
+              throw new Error('API未加载，请刷新页面重试');
+            }
+            
+            const response = await window.api.authAPI.register({
+              phone: this.regPhone,
+              password: this.regPassword,
+              nickname: '用户' + this.regPhone.slice(-4) // 默认昵称使用手机号后4位
+            });
+            
+            // 保存token
+            window.api.saveToken(response.access_token, response.refresh_token);
+            
+            // 获取用户信息
+            const userInfo = await window.api.profileAPI.getProfile();
+            this.nickname = userInfo.nickname || '用户';
+            this.userAvatar = userInfo.avatar_url || 'https://picsum.photos/seed/avatar/100/100';
+            
+            Toast.close();
+            Toast.success('注册成功');
+            
+            // 加载衣物列表
+            await this.loadGarments();
+            
+            this.showPage('homePage');
+          } catch (error) {
+            Toast.close();
+            const errorMsg = error.message || '注册失败，请重试';
+            Toast.fail(errorMsg);
+            console.error('注册失败:', error);
+          }
         },
         
         goToSmartWardrobe() {
@@ -1437,23 +1650,66 @@
           this.selectedClothes = [];
         },
         
-        confirmDelete() {
+        async confirmDelete() {
           if (this.selectedClothes.length === 0) {
-            vant.Toast('请选择要删除的衣物');
+            Toast.fail('请选择要删除的衣物');
             return;
           }
           
-          vant.Dialog.confirm({
-            title: '提示',
-            message: `确定要删除选中的${this.selectedClothes.length}件衣物吗？`
-          }).then(() => {
-            this.clothesList = this.clothesList.filter(item => !this.selectedClothes.includes(item.id));
+          try {
+            await Dialog.confirm({
+              title: '提示',
+              message: `确定要删除选中的${this.selectedClothes.length}件衣物吗？`
+            });
+            
+            console.log('用户确认删除，选中项:', this.selectedClothes);
+            
+            // 调用后端API删除
+            if (window.api && window.api.getToken()) {
+              const loadingToast = Toast.loading({ message: '删除中...', duration: 0 });
+              try {
+                const deletePromises = this.selectedClothes.map(id => 
+                  window.api.wardrobeAPI.deleteGarment(id).catch(err => {
+                    console.error(`删除衣物 ${id} 失败:`, err);
+                    return null; // 继续删除其他项
+                  })
+                );
+                await Promise.all(deletePromises);
+                console.log('批量删除API调用完成');
+              } finally {
+                Toast.close();
+              }
+            } else {
+              console.warn('未登录或token无效，仅更新本地列表');
+            }
+            
+            // 更新本地列表
+            const selectedIds = [...this.selectedClothes];
+            this.clothesList = this.clothesList.filter(item => !selectedIds.includes(item.id));
             this.filteredClothes = [...this.clothesList];
-            this.collectedClothes = this.collectedClothes.filter(item => !this.selectedClothes.includes(item.id));
+            this.collectedClothes = this.collectedClothes.filter(item => !selectedIds.includes(item.id));
             this.isDeleteMode = false;
             this.selectedClothes = [];
-            vant.Toast.success('删除成功');
-          });
+            
+            Toast.success('删除成功');
+            
+            // 重新加载数据确保同步
+            if (window.api && window.api.getToken()) {
+              try {
+                await this.loadGarments();
+              } catch (err) {
+                console.error('重新加载数据失败:', err);
+              }
+            }
+          } catch (error) {
+            // 用户取消删除
+            if (error === 'cancel' || error === 'close') {
+              console.log('用户取消删除');
+            } else {
+              console.error('删除失败:', error);
+              Toast.fail('删除失败，请重试');
+            }
+          }
         },
         
         isCollected(clothesId) {
@@ -1468,16 +1724,16 @@
           const isCollected = this.collectedClothes.some(item => item.id === clothesId);
           if (isCollected) {
             this.collectedClothes = this.collectedClothes.filter(item => item.id !== clothesId);
-            vant.Toast('取消收藏成功');
+            Toast.success('取消收藏成功');
           } else {
             this.collectedClothes.push(clothes);
-            vant.Toast.success('收藏成功');
+            Toast.success('收藏成功');
           }
         },
         
         cancelCollect(clothesId) {
           this.collectedClothes = this.collectedClothes.filter(item => item.id !== clothesId);
-          vant.Toast('取消收藏成功');
+          Toast.success('取消收藏成功');
         },
         
         filterCategory(category) {
@@ -1485,7 +1741,10 @@
           document.querySelectorAll('.category-btn').forEach(btn => {
             btn.classList.remove('active');
           });
-          document.querySelector(`.category-btn[onclick="app.filterCategory('${category}')"]`).classList.add('active');
+          const activeBtn = document.querySelector(`.category-btn[onclick="app.filterCategory('${category}')"]`);
+          if (activeBtn) {
+            activeBtn.classList.add('active');
+          }
           
           // 筛选衣物
           if (category === 'all') {
@@ -1521,7 +1780,7 @@
           });
           
           if (!hasTag) {
-            vant.Toast('请至少选择一个标签');
+            Toast.fail('请至少选择一个标签');
             return;
           }
           
@@ -1534,12 +1793,12 @@
               { id: 6, name: '白色运动鞋' }
             ]
           };
-          vant.Toast.success('穿搭生成成功');
+          Toast.success('穿搭生成成功');
         },
         
         confirmSaveOutfit() {
           if (!this.outfitName) {
-            vant.Toast('请输入穿搭名称');
+            Toast.fail('请输入穿搭名称');
             return;
           }
           
@@ -1551,12 +1810,12 @@
             ]
           });
           
-          vant.Toast.success('保存成功');
+          Toast.success('保存成功');
           this.goBackToPrevious();
         },
         
         editClothes() {
-          vant.Toast('编辑功能开发中');
+          Toast.fail('编辑功能开发中');
         },
         
         goToUserInfo() {
@@ -1592,7 +1851,7 @@
         },
         
         saveUserInfo() {
-          vant.Toast.success('保存成功');
+          Toast.success('保存成功');
           this.goToMine();
         },
         
@@ -1608,7 +1867,7 @@
           
           // 检查文件类型
           if (!file.type.startsWith('image/')) {
-            vant.Toast('请选择图片文件');
+            Toast.fail('请选择图片文件');
             return;
           }
           
@@ -1627,7 +1886,7 @@
           formData.append('type', 'avatar'); // 可以指定图片类型，如头像、服装图片等
           
           // 显示加载提示
-          vant.Toast.loading({
+          Toast.loading({
             message: '上传中...',
             duration: 0,
             forbidClick: true
@@ -1645,8 +1904,8 @@
             this.userAvatar = newImageUrl;
             
             // 隐藏加载提示
-            vant.Toast.clear();
-            vant.Toast.success('头像更新成功');
+            Toast.close();
+            Toast.success('头像更新成功');
             
           }, 1000);
           
@@ -1659,66 +1918,113 @@
           }).then(response => {
             if (response.data.success) {
               this.userAvatar = response.data.imageUrl;
-              vant.Toast.success('头像更新成功');
+              Toast.success('头像更新成功');
             } else {
-              vant.Toast('上传失败：' + response.data.message);
+              Toast.fail('上传失败：' + response.data.message);
             }
           }).catch(error => {
             console.error('上传失败', error);
-            vant.Toast('上传失败，请重试');
+            Toast.fail('上传失败，请重试');
           }).finally(() => {
-            vant.Toast.clear();
+            if (typeof vant.closeToast === 'function') {
+              vant.closeToast();
+            }
           });
           */
         },
         
-        logout() {
-          vant.Dialog.confirm({
-            title: '提示',
-            message: '确定要退出登录吗？'
-          }).then(() => {
+        async logout() {
+          try {
+            await Dialog.confirm({
+              title: '提示',
+              message: '确定要退出登录吗？'
+            });
+            
+            console.log('用户确认退出登录');
+            
+            // 调用后端登出API（如果有）
+            if (window.api) {
+              try {
+                await window.api.authAPI.logout();
+                console.log('后端登出API调用成功');
+              } catch (error) {
+                console.error('登出API调用失败:', error);
+                // 即使API调用失败，也继续执行登出流程
+              }
+              // 清除本地token
+              window.api.clearToken();
+              console.log('本地token已清除');
+            }
+            
+            // 清空数据
+            this.nickname = '用户';
+            this.userAvatar = 'https://picsum.photos/seed/avatar/100/100';
+            this.clothesList = [];
+            this.filteredClothes = [];
+            this.collectedClothes = [];
+            
             // 清空历史记录，确保返回登录页面后无法返回
             this.pageHistory = ['loginPage'];
             this.showPage('loginPage');
-          });
+            
+            Toast.success('已退出登录');
+          } catch (error) {
+            // 用户取消登出
+            if (error === 'cancel' || error === 'close') {
+              console.log('用户取消退出登录');
+            } else {
+              console.error('登出失败:', error);
+              Toast.fail('退出登录失败');
+            }
+          }
         },
         
         setFont(font) {
           this.currentFont = font;
           document.querySelectorAll('.font-page button').forEach(btn => {
-            btn.classList.remove('van-button--primary');
-            btn.classList.add('van-button--default');
+            if (btn) {
+              btn.classList.remove('van-button--primary');
+              btn.classList.add('van-button--default');
+            }
           });
-          document.querySelector(`.font-page button[onclick="app.setFont('${font}')"]`).classList.remove('van-button--default');
-          document.querySelector(`.font-page button[onclick="app.setFont('${font}')"]`).classList.add('van-button--primary');
-          vant.Toast(`已设置为${font === 'black' ? '黑体' : font === 'song' ? '宋体' : '艺术字体'}`);
+          const activeBtn = document.querySelector(`.font-page button[onclick="app.setFont('${font}')"]`);
+          if (activeBtn) {
+            activeBtn.classList.remove('van-button--default');
+            activeBtn.classList.add('van-button--primary');
+          }
+          Toast.success(`已设置为${font === 'black' ? '黑体' : font === 'song' ? '宋体' : '艺术字体'}`);
         },
         
         setLanguage(lang) {
           this.currentLanguage = lang;
           document.querySelectorAll('.language-page button').forEach(btn => {
-            btn.classList.remove('van-button--primary');
-            btn.classList.add('van-button--default');
+            if (btn) {
+              btn.classList.remove('van-button--primary');
+              btn.classList.add('van-button--default');
+            }
           });
-          document.querySelector(`.language-page button[onclick="app.setLanguage('${lang}')"]`).classList.remove('van-button--default');
-          document.querySelector(`.language-page button[onclick="app.setLanguage('${lang}')"]`).classList.add('van-button--primary');
-          vant.Toast(`已设置为${lang === 'zh-CN' ? '简体中文' : lang === 'zh-TW' ? '繁体中文' : '英文'}`);
+          const activeBtn = document.querySelector(`.language-page button[onclick="app.setLanguage('${lang}')"]`);
+          if (activeBtn) {
+            activeBtn.classList.remove('van-button--default');
+            activeBtn.classList.add('van-button--primary');
+          }
+          Toast.success(`已设置为${lang === 'zh-CN' ? '简体中文' : lang === 'zh-TW' ? '繁体中文' : '英文'}`);
         },
         
         resetPassword() {
           if (!this.oldPwd) {
-            vant.Toast('请输入原密码');
+            Toast.fail('请输入原密码');
             return;
           }
           if (!this.newPwd) {
-            vant.Toast('请输入新密码');
+            Toast.fail('请输入新密码');
             return;
           }
           if (this.newPwd !== this.confirmPwd) {
-            vant.Toast('两次输入的密码不一致');
+            Toast.fail('两次输入的密码不一致');
             return;
           }
-          vant.Toast.success('密码重置成功');
+          Toast.success('密码重置成功');
           this.goToSettings();
         },
 
@@ -1746,12 +2052,12 @@
   takePhoto() {
     // 检查设备是否支持摄像头
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      vant.Toast('您的设备不支持摄像头功能');
+      Toast.fail('您的设备不支持摄像头功能');
       return;
     }
     
     // 创建相机拍摄对话框
-    vant.Dialog.alert({
+    Dialog.alert({
       title: '提示',
       message: '相机功能将在实际设备上启用',
       confirmButtonText: '确定'
@@ -1766,28 +2072,19 @@
   handleClothesImageUpload(file) {
     // 检查文件类型
     if (!file.type.startsWith('image/')) {
-      vant.Toast('请选择图片文件');
+      Toast.fail('请选择图片文件');
       return;
     }
     
-    // 显示加载提示
-    vant.Toast.loading({
-      message: '上传中...',
-      duration: 0,
-      forbidClick: true
-    });
+    // 保存文件对象，用于后续上传
+    this.newClothesImgFile = file;
     
-    // 模拟上传
-    setTimeout(() => {
-      // 创建图片预览URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.newClothesImg = e.target.result;
-        vant.Toast.clear();
-        vant.Toast.success('图片上传成功');
-      };
-      reader.readAsDataURL(file);
-    }, 1000);
+    // 创建图片预览URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.newClothesImg = e.target.result;
+    };
+    reader.readAsDataURL(file);
   },
   
   // 价格调整方法
@@ -1802,52 +2099,145 @@
   },
   
   // 保存到衣橱
-  saveToWardrobe() {
+  async saveToWardrobe() {
     // 验证表单
-    if (!this.newClothesImg) {
-      vant.Toast('请选择衣物图片');
+    if (!this.newClothesImgFile && !this.newClothesImg) {
+      Toast.fail('请选择衣物图片');
       return;
     }
     
     if (!this.newClothesName) {
-      vant.Toast('请输入服装名称');
+      Toast.fail('请输入服装名称');
       return;
     }
     
     if (!this.newClothesCategory) {
-      vant.Toast('请选择分类');
+      Toast.fail('请选择分类');
       return;
     }
     
-    // 创建新衣物对象
-    const newClothes = {
-      id: this.clothesList.length + 1,
-      name: this.newClothesName,
-      desc: `${this.getOptionText(this.categoryOptions, this.newClothesCategory)} · ${this.getOptionText(this.seasonOptions, this.newClothesSeason)} · ${this.getOptionText(this.colorOptions, this.newClothesColor)}`,
-      category: this.newClothesCategory,
-      price: this.newClothesPrice,
-      imgUrl: this.newClothesImg,
-      season: this.newClothesSeason ? [this.newClothesSeason] : [],
-      color: this.newClothesColor || ''
-    };
-    
-    // 添加到衣物列表
-    this.clothesList.push(newClothes);
-    this.filteredClothes = [...this.clothesList];
-    
-    // 重置表单
+    try {
+      Toast.loading({ message: '保存中...', duration: 0, forbidClick: true });
+      
+      if (!window.api) {
+        Toast.close();
+        throw new Error('API未加载，请刷新页面重试');
+      }
+      
+      // 创建FormData
+      const formData = new FormData();
+      
+      // 如果有文件对象，使用它；否则尝试从base64创建Blob
+      if (this.newClothesImgFile) {
+        formData.append('file', this.newClothesImgFile);
+      } else if (this.newClothesImg && this.newClothesImg.startsWith('data:')) {
+        // 从base64创建Blob
+        const response = await fetch(this.newClothesImg);
+        const blob = await response.blob();
+        formData.append('file', blob, 'image.jpg');
+      } else {
+        Toast.close();
+        throw new Error('请选择有效的图片文件');
+      }
+      
+      formData.append('name', this.newClothesName);
+      formData.append('category', this.newClothesCategory);
+      if (this.newClothesSeason) {
+        formData.append('season', this.newClothesSeason);
+      }
+      if (this.newClothesColor) {
+        formData.append('color', this.newClothesColor);
+      }
+      
+      // 调用后端API
+      const garment = await window.api.wardrobeAPI.createGarment(formData);
+      
+      Toast.close();
+      Toast.success('成功添加到衣橱');
+      
+      // 重新加载衣物列表
+      await this.loadGarments();
+      
+      // 重置表单
+      this.resetClothesForm();
+      
+      // 返回衣橱页面
+      this.goBackToPrevious();
+    } catch (error) {
+      Toast.close();
+      const errorMsg = error.message || '保存失败，请重试';
+      Toast.fail(errorMsg);
+      console.error('保存衣物失败:', error);
+    }
+  },
+  
+  // 重置衣物表单
+  resetClothesForm() {
     this.newClothesImg = '';
+    this.newClothesImgFile = null;
     this.newClothesName = '';
     this.newClothesCategory = '';
     this.newClothesScene = '';
     this.newClothesStyle = '';
     this.newClothesSeason = '';
     this.newClothesColor = '';
-    this.newClothesPrice = 3;
-    
-    // 提示并返回衣橱页面
-    vant.Toast.success('成功添加到衣橱');
-    this.goBackToPrevious();
+    this.newClothesPrice = 100;
+  },
+  
+  // 从后端加载衣物列表
+  async loadGarments() {
+    try {
+      if (!window.api || !window.api.getToken()) {
+        // 未登录，使用空列表
+        this.clothesList = [];
+        this.filteredClothes = [];
+        return;
+      }
+      
+      const garments = await window.api.wardrobeAPI.getGarments();
+      this.clothesList = garments.map(g => {
+        // 过滤掉错误标签（如"未识别标签"、"标签识别失败"）
+        const validTags = (g.tags || []).filter(tag => 
+          tag && 
+          tag !== '未识别标签' && 
+          tag !== '标签识别失败' &&
+          tag.trim() !== ''
+        );
+        
+        return {
+          id: g.id,
+          name: g.name,
+          desc: validTags.length > 0 ? validTags.join(' · ') : g.category || '',
+          category: g.category,
+          price: 0, // 后端没有价格字段
+          imgUrl: this.getImageUrl(g.image_url),
+          season: g.season ? [g.season] : [],
+          color: g.color || ''
+        };
+      });
+      this.filteredClothes = [...this.clothesList];
+    } catch (error) {
+      console.error('加载衣物失败:', error);
+      // 如果加载失败，保持现有数据或使用空列表
+      if (this.clothesList.length === 0) {
+        this.clothesList = [];
+        this.filteredClothes = [];
+      }
+    }
+  },
+  
+  // 获取完整图片URL
+  getImageUrl(path) {
+    if (!path) {
+      console.warn('图片路径为空');
+      return 'https://picsum.photos/seed/default/200/120';
+    }
+    if (path.startsWith('http')) return path;
+    // 拼接API基础URL
+    const apiBaseUrl = window.API_BASE_URL || 'http://127.0.0.1:8000';
+    const fullUrl = `${apiBaseUrl}${path}`;
+    console.log(`图片URL: ${path} -> ${fullUrl}`);
+    return fullUrl;
   },
   
   // 辅助方法：根据值获取选项文本
