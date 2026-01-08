@@ -10,6 +10,7 @@ from ..security import verify_token
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """用户注册"""

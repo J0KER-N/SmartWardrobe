@@ -98,6 +98,7 @@ class TryonResponse(BaseModel):
     tryon_image_url: str
     tryon_status: str
     created_at: datetime
+    garment: Optional[GarmentResponse] = None  # 关联的衣物信息
 
     model_config = {"from_attributes": True}
 
@@ -132,6 +133,19 @@ class RecommendationResponse(BaseModel):
     """穿搭推荐响应"""
     recommendations: List[RecommendationItem]
     weather: Dict[str, Any]  # 天气信息，键值类型可变
+
+
+class RecommendationRecordResponse(BaseModel):
+    """穿搭推荐记录响应"""
+    id: int
+    owner_id: int
+    garment_ids: List[int]
+    garments: List[GarmentResponse]
+    description: str
+    reason: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 # ------------------------------ 个人中心模型 ------------------------------
 class ProfileUpdate(BaseModel):

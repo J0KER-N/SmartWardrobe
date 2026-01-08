@@ -1,0 +1,14 @@
+STDOUT:
+registering...
+register 400 {"detail":"该手机号已注册"}
+login 200 {"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNSIsImV4cCI6MTc2NzQ5NDA1NywidHlwZSI6ImFjY2VzcyJ9.zzvulpmtLGYxysy66QSR0PetWniRlo5QJU0MCMpdMwU","refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNSIsImV4cCI6MTc2ODA5Nzk1NywidHlwZSI6InJlZnJlc2gifQ.zkLYL7CZa11kfEqKiyXvjR95avVClrwLzO7WUmCYROw","token_type":"bearer"}
+found 23 garments, 3 avatars
+using files: uploads\garments\202512\11_226f7b8995a04682ae2bb14b0499fd40.jpg uploads\avatars\202512\11_39564e163eaa41369153d64eea8a5cd4.jpg
+/wardrobe/items 201
+{"id":22,"owner_id":15,"name":"t","category":"top","color":"red","image_url":"/uploads/garments/202601/15_990605e441424476a89870db31d2cd12.jpg","tags":[],"season":null,"created_at":"2026-01-04T10:19:17.748916"}
+calling tryon...
+/tryon/generate 500
+{"detail":"试穿图片保存失败"}
+done
+
+STDERR:

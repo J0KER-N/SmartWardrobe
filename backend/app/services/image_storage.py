@@ -24,8 +24,13 @@ def init_storage():
 init_storage()
 
 # 图片校验
-def validate_image(file: UploadFile) -> None:
-    """校验图片格式和大小"""
+def validate_image(file: UploadFile, max_size: int = None) -> None:
+    """校验图片格式和大小
+    
+    Args:
+        file: 上传的文件
+        max_size: 最大文件大小（字节），如果为None则使用默认的image_max_size
+    """
     # 校验格式（支持更多格式）
     allowed_formats = ["image/jpeg", "image/png", "image/jpg", "image/webp"]
     # 如果content_type为空，尝试从文件名判断
@@ -46,8 +51,17 @@ def validate_image(file: UploadFile) -> None:
     file.file.seek(0, os.SEEK_END)
     file_size = file.file.tell()
     file.file.seek(0)  # 重置指针
-    if file_size > settings.image_max_size:
-        raise HTTPException(status_code=400, detail=f"图片大小不能超过{settings.image_max_size/1024/1024}MB")
+    
+    max_allowed = max_size if max_size is not None else settings.image_max_size
+    logger.debug(f"文件大小检查: {file_size/1024/1024:.2f}MB vs 限制: {max_allowed/1024/1024:.2f}MB")
+    if file_size > max_allowed:
+        logger.warning(f"文件大小超过限制: {file_size/1024/1024:.2f}MB > {max_allowed/1024/1024:.2f}MB")
+        raise HTTPException(status_code=400, detail=f"图片大小不能超过{max_allowed/1024/1024}MB")
+
+def validate_tryon_image(file: UploadFile) -> None:
+    """校验试衣用户照片格式和大小（使用更大的限制，符合Leffa标准）"""
+    logger.info(f"验证试衣用户照片，限制大小: {settings.tryon_image_max_size/1024/1024}MB")
+    validate_image(file, max_size=settings.tryon_image_max_size)
 
 # 图片压缩
 def compress_image(image: Image, quality: int = 85) -> Image:
@@ -83,6 +97,8 @@ def _save_local(file: UploadFile, user_id: int, sub_dir: str) -> str:
     save_path = os.path.join(save_dir, file_name)
     
     try:
+        # 确保文件指针在开头
+        file.file.seek(0)
         # 读取并压缩图片
         image = Image.open(file.file)
         compressed_image = compress_image(image, settings.image_quality)
@@ -115,6 +131,15 @@ def save_avatar(file: UploadFile, user_id: int) -> str:
         return _save_local(file, user_id, "avatars")
     else:
         return _save_object_storage(file, user_id, "avatars")
+
+def save_tryon_user_photo(file: UploadFile, user_id: int) -> str:
+    """保存试衣用户照片（使用更大的大小限制）"""
+    logger.info(f"保存试衣用户照片，文件大小限制: {settings.tryon_image_max_size/1024/1024}MB")
+    validate_tryon_image(file)
+    if settings.object_storage_type == "local":
+        return _save_local(file, user_id, "garments")  # 试衣用户照片也保存在garments目录
+    else:
+        return _save_object_storage(file, user_id, "garments")
 
 def save_tryon_image(image_data: bytes, user_id: int) -> str:
     """保存试穿图片"""

@@ -1,0 +1,11 @@
+2026-01-04 18:19:17,433 - app.main - INFO - CORS已启用 | 允许的源: ['http://localhost:8080']
+2026-01-04 18:19:17,451 - app.main - INFO - 静态文件服务已启用 | 路径: c:\Users\23708\Desktop\smart-wardrobe-system-test\backend\uploads
+INFO:     Started server process [29360]
+INFO:     Waiting for application startup.
+2026-01-04 18:19:17,452 - app.main - INFO - 启动 SmartWardrobe | 环境: development
+2026-01-04 18:19:17,455 - app.main - INFO - 数据库表初始化完成
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8001): [winerror 10048] 通常每个套接字地址(协议/网络地址/端口)只允许使用一次。
+INFO:     Waiting for application shutdown.
+2026-01-04 18:19:17,456 - app.main - INFO - 应用已关闭
+INFO:     Application shutdown complete.

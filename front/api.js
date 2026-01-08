@@ -1,7 +1,8 @@
 // API基础配置
 // 在浏览器环境中不能使用 process.env，直接使用默认值
 // 如果需要修改，可以直接改这里的值，或者通过 window.API_BASE_URL 覆盖
-const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || 'http://127.0.0.1:8000';
+// 注意：当前后端 FastAPI 运行在 8001 端口
+const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || 'http://127.0.0.1:8001';
 
 // Token管理
 const TOKEN_KEY = 'smart_wardrobe_access_token';
@@ -213,6 +214,10 @@ const api = {
                 body: JSON.stringify(params),
             });
         },
+        // 自动推荐（根据用户衣橱、天气、随机风格）
+        getAutoRecommendations: async (city = '北京') => {
+            return request(`/recommendations/auto?city=${encodeURIComponent(city)}`);
+        },
     },
     
     // 记录管理
@@ -221,6 +226,11 @@ const api = {
         getTryonHistory: async (params = {}) => {
             const queryString = new URLSearchParams(params).toString();
             return request(`/records/history${queryString ? '?' + queryString : ''}`);
+        },
+        // 获取穿搭推荐历史
+        getRecommendationHistory: async (params = {}) => {
+            const queryString = new URLSearchParams(params).toString();
+            return request(`/records/recommendations${queryString ? '?' + queryString : ''}`);
         },
         // 获取收藏列表
         getFavorites: async (params = {}) => {

@@ -71,3 +71,19 @@ class Favorite(Base):
     # 关联关系
     owner = relationship("User", back_populates="favorites")
     tryon_record = relationship("TryonRecord", back_populates="favorites")
+
+
+class RecommendationRecord(Base):
+    """穿搭推荐记录"""
+    __tablename__ = "recommendation_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    garment_ids = Column(JSON, default=list)  # 推荐涉及的衣物ID列表
+    garments = Column(JSON, default=list)     # 推荐时的衣物详细信息快照
+    description = Column(String, nullable=False)  # 穿搭描述文案
+    reason = Column(String, nullable=False)       # 推荐理由
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 关联关系
+    owner = relationship("User")

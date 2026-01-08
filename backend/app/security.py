@@ -131,7 +131,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenPayloa
                     return None
                 return TokenPayload(sub=sub_int, exp=datetime.fromtimestamp(exp_ts), type=unverified.get("type"))
             else:
-                logger.warning("Token expired beyond allowed clock skew")
+                logger.debug("Token expired beyond allowed clock skew")  # 改为debug级别，减少日志噪音
                 return None
         except Exception:
             logger.exception('二次解析已过期 token 失败')
