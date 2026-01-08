@@ -83,10 +83,21 @@ def generate_outfit_recommendations(garments: List, weather: Dict) -> List[Dict]
     
     # 兜底推荐（如果没有匹配的）
     if not recommendations and all_garments:
-        recommendations.append({
-            "garment_ids": [all_garments[0]["id"]],
-            "garments": [all_garments[0]["garment"]],
-            "reason": "基于你的衣橱推荐的搭配"
-        })
+        # 如果只有一件衣物，直接推荐
+        if len(all_garments) == 1:
+            recommendations.append({
+                "garment_ids": [all_garments[0]["id"]],
+                "garments": [all_garments[0]["garment"]],
+                "reason": "基于你的衣橱推荐的搭配"
+            })
+        else:
+            # 多件衣物时，随机组合2-3件
+            import random
+            selected = random.sample(all_garments, min(3, len(all_garments)))
+            recommendations.append({
+                "garment_ids": [g["id"] for g in selected],
+                "garments": [g["garment"] for g in selected],
+                "reason": "基于你的衣橱推荐的搭配"
+            })
     
     return recommendations

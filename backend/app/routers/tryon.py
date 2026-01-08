@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
+import logging
 from sqlalchemy.orm import Session
 from typing import Dict
 
@@ -7,9 +8,10 @@ from ..models import User, Garment, TryonRecord
 from ..schemas import TryonCreate, TryonResponse, BaseResponse
 from ..dependencies import get_current_user
 from ..services.ai_clients import generate_tryon, AIClientError
-from ..services.image_storage import save_tryon_image, save_image
+from ..services.image_storage import save_tryon_image, save_tryon_user_photo, validate_tryon_image
 
 router = APIRouter(prefix="/tryon", tags=["虚拟试穿"])
+logger = logging.getLogger(__name__)
 
 @router.post("/generate", response_model=TryonResponse)
 def generate_tryon_image(
@@ -37,8 +39,8 @@ def generate_tryon_image(
         # 准备 user_photo_url：优先使用上传图片，其次使用传入的 URL
         resolved_user_photo_url = None
         if user_photo is not None:
-            # 将上传的用户照片保存为普通图片，并使用其 URL
-            resolved_user_photo_url = save_image(user_photo, current_user.id)
+            # 保存试衣用户照片（使用更大的大小限制，20MB）
+            resolved_user_photo_url = save_tryon_user_photo(user_photo, current_user.id)
         elif user_photo_url:
             resolved_user_photo_url = user_photo_url
         else:
@@ -50,8 +52,22 @@ def generate_tryon_image(
             garment_image_url=garment.image_url
         )
         
-        # 保存试穿图片
-        tryon_image_url = save_tryon_image(tryon_result["image_data"], current_user.id)
+        # 保存试穿图片（捕获并记录保存失败的详细异常）
+        try:
+            tryon_image_url = save_tryon_image(tryon_result["image_data"], current_user.id)
+        except Exception as e:
+            logger.exception("保存试穿图片失败（user_id=%s, garment_id=%s）", current_user.id, garment.id)
+            # 记录失败状态到数据库
+            tryon_record = TryonRecord(
+                owner_id=current_user.id,
+                garment_id=garment.id,
+                user_photo_url=resolved_user_photo_url,
+                tryon_image_url="",
+                tryon_status="failed"
+            )
+            db.add(tryon_record)
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="试穿图片保存失败")
         
         # 创建试穿记录
         tryon_record = TryonRecord(
@@ -68,7 +84,10 @@ def generate_tryon_image(
         return tryon_record
     
     except AIClientError as e:
-        # 记录失败状态
+        # 记录失败状态和详细错误信息
+        error_detail = str(e)
+        logger.error(f"生成试穿图片失败（user_id={current_user.id}, garment_id={garment.id}）: {error_detail}")
+        
         tryon_record = TryonRecord(
             owner_id=current_user.id,
             garment_id=garment.id,
@@ -79,9 +98,39 @@ def generate_tryon_image(
         db.add(tryon_record)
         db.commit()
         
+        # 根据错误类型返回不同的状态码和消息
+        if "超时" in error_detail or "timeout" in error_detail.lower():
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail=f"生成试穿图片超时，请稍后重试。错误详情: {error_detail}"
+            )
+        elif "限流" in error_detail or "rate limit" in error_detail.lower():
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"请求过于频繁，请稍后重试。错误详情: {error_detail}"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"生成试穿图片失败: {error_detail}"
+            )
+    except Exception as e:
+        # 捕获其他未预期的异常
+        logger.exception(f"生成试穿图片时发生未预期的异常（user_id={current_user.id}, garment_id={garment.id}）")
+        
+        tryon_record = TryonRecord(
+            owner_id=current_user.id,
+            garment_id=garment.id,
+            user_photo_url=resolved_user_photo_url if 'resolved_user_photo_url' in locals() else "",
+            tryon_image_url="",
+            tryon_status="failed"
+        )
+        db.add(tryon_record)
+        db.commit()
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"生成试穿图片失败: {str(e)}"
+            detail=f"生成试穿图片时发生错误: {str(e)}"
         )
 
 @router.get("/records/{record_id}", response_model=TryonResponse)

@@ -32,7 +32,15 @@ class Settings(BaseModel):
     frontend_origin: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:8080")
     
     # AI服务配置
-    leffa_endpoint: Optional[str] = os.getenv("LEFFA_ENDPOINT")
+    leffa_endpoint: Optional[str] = os.getenv("LEFFA_ENDPOINT")  # 保留用于兼容性
+    # 自建 Leffa 虚拟试穿服务（如果配置，则优先使用该服务）
+    # 例如：http://your-server:8000/virtual_tryon
+    leffa_virtual_tryon_url: Optional[str] = os.getenv("LEFFA_VIRTUAL_TRYON_URL")
+    huggingface_api_key: Optional[str] = os.getenv("HUGGINGFACE_API_KEY")  # Hugging Face API Key
+    huggingface_leffa_model: str = os.getenv("HUGGINGFACE_LEFFA_MODEL", "facebook/leffa")  # 虚拟试衣模型ID（默认使用 facebook/leffa，支持 Inference API）
+    # 魔搭模型配置（国内可用）
+    modelscope_model: Optional[str] = os.getenv("MODELSCOPE_MODEL")  # 魔搭模型ID，例如：damo/cv_unet_virtual-try-on-idm-vton
+    modelscope_api_key: Optional[str] = os.getenv("MODELSCOPE_API_KEY")  # 魔搭 API Key
     fashionclip_endpoint: Optional[str] = os.getenv("FASHIONCLIP_ENDPOINT")
     baichuan_api_key: Optional[str] = os.getenv("BAICHUAN_API_KEY")
     baichuan_endpoint: str = os.getenv("BAICHUAN_ENDPOINT", "https://api.baichuan-ai.com/v1/chat/completions")
@@ -42,7 +50,8 @@ class Settings(BaseModel):
     # 图片存储配置
     object_storage_type: str = os.getenv("OBJECT_STORAGE_TYPE", "local")
     image_storage_path: str = os.getenv("IMAGE_STORAGE_PATH", "./uploads")
-    image_max_size: int = int(os.getenv("IMAGE_MAX_SIZE", 5242880))  # 5MB
+    image_max_size: int = int(os.getenv("IMAGE_MAX_SIZE", 5242880))  # 5MB（普通图片）
+    tryon_image_max_size: int = int(os.getenv("TRYON_IMAGE_MAX_SIZE", 20971520))  # 20MB（试衣用户照片，符合Leffa标准）
     image_quality: int = int(os.getenv("IMAGE_QUALITY", 85))
     
     # 天气服务配置

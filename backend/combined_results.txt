@@ -1,0 +1,36 @@
+--- MOCK LOG ---
+INFO:     Started server process [37352]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('127.0.0.1', 9000): [winerror 10048] ͨ��ÿ���׽��ֵ�ַ(Э��/�����ַ/�˿�)ֻ����ʹ��һ�Ρ�
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+
+--- BACKEND LOG ---
+2026-01-04 18:19:17,433 - app.main - INFO - CORS������ | ������Դ: ['http://localhost:8080']
+2026-01-04 18:19:17,451 - app.main - INFO - ��̬�ļ����������� | ·��: c:\Users\23708\Desktop\smart-wardrobe-system-test\backend\uploads
+INFO:     Started server process [29360]
+INFO:     Waiting for application startup.
+2026-01-04 18:19:17,452 - app.main - INFO - ���� SmartWardrobe | ����: development
+2026-01-04 18:19:17,455 - app.main - INFO - ���ݿ����ʼ�����
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8001): [winerror 10048] ͨ��ÿ���׽��ֵ�ַ(Э��/�����ַ/�˿�)ֻ����ʹ��һ�Ρ�
+INFO:     Waiting for application shutdown.
+2026-01-04 18:19:17,456 - app.main - INFO - Ӧ���ѹر�
+INFO:     Application shutdown complete.
+
+--- TRYON OUT ---
+STDOUT:
+registering...
+register 400 {"detail":"该手机号已注册"}
+login 200 {"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNSIsImV4cCI6MTc2NzQ5NDA1NywidHlwZSI6ImFjY2VzcyJ9.zzvulpmtLGYxysy66QSR0PetWniRlo5QJU0MCMpdMwU","refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNSIsImV4cCI6MTc2ODA5Nzk1NywidHlwZSI6InJlZnJlc2gifQ.zkLYL7CZa11kfEqKiyXvjR95avVClrwLzO7WUmCYROw","token_type":"bearer"}
+found 23 garments, 3 avatars
+using files: uploads\garments\202512\11_226f7b8995a04682ae2bb14b0499fd40.jpg uploads\avatars\202512\11_39564e163eaa41369153d64eea8a5cd4.jpg
+/wardrobe/items 201
+{"id":22,"owner_id":15,"name":"t","category":"top","color":"red","image_url":"/uploads/garments/202601/15_990605e441424476a89870db31d2cd12.jpg","tags":[],"season":null,"created_at":"2026-01-04T10:19:17.748916"}
+calling tryon...
+/tryon/generate 500
+{"detail":"试穿图片保存失败"}
+done
+
+STDERR:
