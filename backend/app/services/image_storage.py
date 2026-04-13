@@ -5,6 +5,7 @@ from datetime import datetime
 from PIL import Image
 from io import BytesIO
 from fastapi import UploadFile, HTTPException
+import httpx
 
 from ..config import get_settings
 
@@ -19,6 +20,7 @@ def init_storage():
         os.makedirs(os.path.join(settings.image_storage_path, "garments"), exist_ok=True)
         os.makedirs(os.path.join(settings.image_storage_path, "avatars"), exist_ok=True)
         os.makedirs(os.path.join(settings.image_storage_path, "tryon"), exist_ok=True)
+        os.makedirs(os.path.join(settings.image_storage_path, "recommendations"), exist_ok=True)
 
 # 调用初始化
 init_storage()
@@ -157,3 +159,79 @@ def save_tryon_image(image_data: bytes, user_id: int) -> str:
     except Exception as e:
         logger.error(f"保存试穿图片失败: {str(e)}")
         raise HTTPException(status_code=500, detail="试穿图片保存失败")
+
+
+def _load_image_for_preview(image_url: str) -> Image.Image:
+    """按 URL 加载图片，用于生成推荐拼图。"""
+    if image_url.startswith("/uploads/"):
+        relative_path = image_url.replace("/uploads/", "", 1)
+        absolute_path = os.path.join(settings.image_storage_path, relative_path)
+        return Image.open(absolute_path).convert("RGB")
+
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        response = httpx.get(image_url, timeout=10.0)
+        response.raise_for_status()
+        return Image.open(BytesIO(response.content)).convert("RGB")
+
+    # 兜底：尝试按本地路径读取
+    return Image.open(image_url).convert("RGB")
+
+
+def _paste_cover(canvas: Image.Image, image: Image.Image, box: tuple[int, int, int, int]) -> None:
+    """将图片按 cover 方式填充到目标区域。"""
+    x1, y1, x2, y2 = box
+    target_w = x2 - x1
+    target_h = y2 - y1
+
+    img_w, img_h = image.size
+    scale = max(target_w / img_w, target_h / img_h)
+    resized = image.resize((int(img_w * scale), int(img_h * scale)))
+
+    left = (resized.width - target_w) // 2
+    top = (resized.height - target_h) // 2
+    crop = resized.crop((left, top, left + target_w, top + target_h))
+    canvas.paste(crop, (x1, y1))
+
+
+def save_recommendation_preview(image_urls: list[str], user_id: int) -> str | None:
+    """根据推荐衣物图生成拼图预览，并返回可访问 URL。"""
+    if not image_urls:
+        return None
+
+    loaded_images = []
+    for url in image_urls:
+        try:
+            loaded_images.append(_load_image_for_preview(url))
+        except Exception as exc:
+            logger.warning(f"加载推荐图片失败，已跳过: {url} | {exc}")
+
+    if not loaded_images:
+        return None
+
+    # 使用固定尺寸，保证前端展示稳定
+    canvas = Image.new("RGB", (1024, 1024), "#f4f4f5")
+    count = len(loaded_images)
+
+    if count == 1:
+        boxes = [(0, 0, 1024, 1024)]
+    elif count == 2:
+        boxes = [(0, 0, 512, 1024), (512, 0, 1024, 1024)]
+    else:
+        boxes = [
+            (0, 0, 512, 512),
+            (512, 0, 1024, 512),
+            (0, 512, 512, 1024),
+            (512, 512, 1024, 1024),
+        ]
+
+    for idx, image in enumerate(loaded_images[: len(boxes)]):
+        _paste_cover(canvas, image, boxes[idx])
+
+    file_name = f"{user_id}_{uuid.uuid4().hex}.jpg"
+    date_dir = datetime.now().strftime("%Y%m")
+    save_dir = os.path.join(settings.image_storage_path, "recommendations", date_dir)
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, file_name)
+
+    canvas.save(save_path, quality=90)
+    return f"/uploads/recommendations/{date_dir}/{file_name}"

@@ -10,6 +10,7 @@ from ..dependencies import get_current_user
 from ..services.weather import get_weather
 from ..services.outfit_logic import generate_outfit_recommendations
 from ..services.ai_clients import summarize_outfit, generate_recommendation_reason
+from ..services.image_storage import save_recommendation_preview
 
 router = APIRouter(prefix="/recommendations", tags=["穿搭推荐"])
 
@@ -72,12 +73,17 @@ def daily_recommendations(
                             break
             
             reason = generate_recommendation_reason(garment_responses, weather, style, color)
+            preview_image_url = save_recommendation_preview(
+                [g.image_url for g in garment_responses],
+                current_user.id
+            )
 
             item = RecommendationItem(
                 garment_ids=group["garment_ids"],
                 garments=garment_responses,
                 description=description,
-                reason=reason
+                reason=reason,
+                preview_image_url=preview_image_url
             )
             recommendations.append(item)
 
@@ -187,12 +193,17 @@ def auto_recommendations(
                             break
             
             reason = generate_recommendation_reason(garment_responses, weather, style, color)
+            preview_image_url = save_recommendation_preview(
+                [g.image_url for g in garment_responses],
+                current_user.id
+            )
 
             item = RecommendationItem(
                 garment_ids=group["garment_ids"],
                 garments=garment_responses,
                 description=description,
-                reason=reason
+                reason=reason,
+                preview_image_url=preview_image_url
             )
             recommendations.append(item)
 

@@ -2192,6 +2192,7 @@
                 id: rec.id || `rec_${Date.now()}_${index}`, // 使用后端ID或生成唯一ID
                 garment_ids: rec.garment_ids,
                 garments: rec.garments,
+                preview_image_url: rec.preview_image_url,
                 description: rec.description,
                 reason: rec.reason,
                 created_at: rec.created_at || new Date().toISOString() // 保留后端时间戳
@@ -2444,25 +2445,34 @@
             
             // 如果后端API调用失败或未登录，使用本地生成
             if (!recommendation) {
-              // 根据选择的标签生成推荐理由
+              // 根据本地衣橱数据生成真实预览，不再使用假图
               const reason = this.generateRecommendationReason();
-              
+              const sourceList = this.clothesList.length > 0 ? this.clothesList : this.filteredClothes;
+              const selected = sourceList.slice(0, Math.min(3, sourceList.length));
+
+              if (selected.length === 0) {
+                Toast.close();
+                Toast.fail('暂无可用衣物，请先添加衣物');
+                return;
+              }
+
               this.generatedOutfit = {
-                imgUrl: 'https://picsum.photos/seed/outfit/400/200',
-                items: [
-                  { id: 1, name: '黑色短袖' },
-                  { id: 5, name: '深色牛仔裤' },
-                  { id: 6, name: '白色运动鞋' }
-                ],
+                imgUrl: selected[0].imgUrl,
+                items: selected.map(g => ({
+                  id: g.id,
+                  name: g.name
+                })),
                 reason: reason
               };
             } else {
               // 使用后端返回的推荐
               const rec = recommendation;
               this.generatedOutfit = {
-                imgUrl: rec.garments && rec.garments.length > 0 
-                  ? this.getImageUrl(rec.garments[0].image_url) 
-                  : 'https://picsum.photos/seed/outfit/400/200',
+                imgUrl: rec.preview_image_url
+                  ? this.getImageUrl(rec.preview_image_url)
+                  : (rec.garments && rec.garments.length > 0
+                  ? this.getImageUrl(rec.garments[0].image_url)
+                  : 'https://picsum.photos/seed/outfit/400/200'),
                 items: rec.garments.map(g => ({
                   id: g.id,
                   name: g.name

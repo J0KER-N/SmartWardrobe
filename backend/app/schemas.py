@@ -128,6 +128,7 @@ class RecommendationItem(BaseModel):
     garments: List[GarmentResponse]
     description: str
     reason: str  # 推荐理由（如"适合当前天气"）
+    preview_image_url: Optional[str] = None
 
 class RecommendationResponse(BaseModel):
     """穿搭推荐响应"""
