@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能衣橱APP</title>
+  <!-- 引入Vant组件库 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/vant@4/lib/index.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vant@4/lib/vant.min.js"></script>
+  <style>
+    /* 全局样式 */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: #f5f5f5;
+    }
+    .page {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      background-color: #fff;
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+    /* 底部导航样式 */
+    .tabbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      background-color: #fff;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 999;
+    }
+    .tabbar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 12px;
+      color: #666;
+    }
+    .tabbar-item.active {
+      color: #1989fa;
+    }
+    /* 启动页样式 */
+    .splash {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
+    }
+    .splash-logo {
+      font-size: 32px;
+      font-weight: bold;
+      color: #1989fa;
+      margin-bottom: 20px;
+    }
+    .skip-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 5px 10px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 20px;
+      color: #333;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 1. 启动页面 -->
+    <div class="page splash active" id="splashPage">
+      <div class="skip-btn" @click="goToLogin">{{ skipText }}</div>
+      <div class="splash-logo">简衣橱</div>
+      <div class="text-gray-500 text-lg">智能穿搭衣橱</div>
+    </div>
+
+    <!-- 2. 登录页面 -->
+    <div class="page" id="loginPage">
+      <div class="p-6">
+        <h2 class="text-2xl font-bold mb-8">登录</h2>
+        <div class="van-cell-group border-0">
+          <div class="van-field">
+            <div class="van-field__label">+86</div>
+            <input type="tel" class="van-field__control" placeholder="请输入手机号码" v-model="phone">
+          </div>
+          <div class="van-field" v-if="isPwdLogin">
+            <input type="password" class="van-field__control" placeholder="请输入密码" v-model="password">
+          </div>
+          <div class="van-field" v-else>
+            <input type="text" class="van-field__control" placeholder="请输入验证码" v-model="code">
+            <button class="van-button van-button--text van-field__button" @click="getCode">获取验证码</button>
+          </div>
+        </div>
+        <div class="flex justify-between my-4">
+          <button class="text-blue-500" @click="toggleLoginType">
+            {{ isPwdLogin ? '手机验证码登录' : '账号密码登录' }}
+          </button>
+        </div>
+        <button class="van-button van-button--primary w-full mt-4" @click="login">登录</button>
+        <button class="van-button van-button--text w-full mt-4" @click="goToRegister">注册新用户</button>
+        <p class="text-center text-gray-400 text-xs mt-6">登录或注册代表您同意用户服务协议</p>
+      </div>
+    </div>
+
+    <!-- 3. 注册页面 -->
+    <div class="page" id="registerPage">
+      <div class="p-6">
+        <h2 class="text-2xl font-bold mb-8">注册</h2>
+        <div class="van-cell-group border-0">
+          <div class="van-field">
+            <div class="van-field__label">+86</div>
+            <input type="tel" class="van-field__control" placeholder="请输入手机号码" v-model="regPhone">
+          </div>
+          <div class="van-field">
+            <input type="text" class="van-field__control" placeholder="请输入验证码" v-model="regCode">
+            <button class="van-button van-button--text van-field__button" @click="getRegCode">获取验证码</button>
+          </div>
+          <div class="van-field">
+            <input type="password" class="van-field__control" placeholder="请输入密码" v-model="regPassword">
+          </div>
+        </div>
+        <button class="van-button van-button--primary w-full mt-8" @click="register">立即注册</button>
+        <button class="van-button van-button--text w-full mt-4" @click="goToLogin">已有账号，去登录</button>
+        <p class="text-center text-gray-400 text-xs mt-6">登录或注册代表您同意用户服务协议</p>
+      </div>
+    </div>
+
+    <!-- 4. 首页页面 -->
+    <div class="page" id="homePage">
+      <div class="p-4">
+        <h1 class="text-xl font-bold mb-2">刀刀</h1>
+        <p class="text-gray-500 mb-6">重塑日常，表达真我~</p>
+        
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold mb-3">今日穿搭定制</h2>
+          <button class="van-button van-button--text text-blue-500 mb-4" @click="goToSmartWardrobe">详细</button>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-100 rounded-lg p-3 relative" @click="goToClothesDetail">
+              <div class="text-center">
+                <div class="text-sm font-medium">商务休闲</div>
+                <div class="text-xs text-gray-500 mt-1">简约而不失格调</div>
+              </div>
+              <button class="absolute top-2 right-2 text-red-500" @click.stop="collectClothes"><i class="van-icon van-icon-like-o"></i></button>
+            </div>
+            <div class="bg-gray-100 rounded-lg p-3 relative" @click="goToClothesDetail">
+              <div class="text-center">
+                <div class="text-sm font-medium">简约通勤</div>
+                <div class="text-xs text-gray-500 mt-1">时尚与舒适并存</div>
+              </div>
+              <button class="absolute top-2 right-2 text-red-500" @click.stop="collectClothes"><i class="van-icon van-icon-like-o"></i></button>
+            </div>
+            <div class="bg-gray-100 rounded-lg p-3 relative" @click="goToClothesDetail">
+              <div class="text-center">
+                <div class="text-sm font-medium">朋友聚会</div>
+                <div class="text-xs text-gray-500 mt-1">轻熟优雅首选</div>
+              </div>
+              <button class="absolute top-2 right-2 text-red-500" @click.stop="collectClothes"><i class="van-icon van-icon-like-o"></i></button>
+            </div>
+            <div class="bg-gray-100 rounded-lg p-3 relative" @click="goToClothesDetail">
+              <div class="text-center">
+                <div class="text-sm font-medium">运动健身</div>
+                <div class="text-xs text-gray-500 mt-1">活力年轻搭配</div>
+              </div>
+              <button class="absolute top-2 right-2 text-red-500" @click.stop="collectClothes"><i class="van-icon van-icon-like-o"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部导航 -->
+      <div class="tabbar">
+        <div class="tabbar-item active" @click="showPage('homePage')">
+          <i class="van-icon van-icon-home-o text-lg"></i>
+          <span>推荐</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('wardrobePage')">
+          <i class="van-icon van-icon-box-o text-lg"></i>
+          <span>衣橱</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('historyPage')">
+          <i class="van-icon van-icon-history-o text-lg"></i>
+          <span>历史</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('minePage')">
+          <i class="van-icon van-icon-user-o text-lg"></i>
+          <span>我的</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. 衣橱页面 -->
+    <div class="page" id="wardrobePage">
+      <div class="p-4">
+        <h1 class="text-xl font-bold mb-2">刀刀</h1>
+        <p class="text-gray-500 mb-4">重塑日常，表达真我~</p>
+        
+        <!-- 分类导航 -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button class="van-button van-button--primary van-button--mini">全部</button>
+          <button class="van-button van-button--default van-button--mini">上装</button>
+          <button class="van-button van-button--default van-button--mini">裤装</button>
+          <button class="van-button van-button--default van-button--mini">裙装</button>
+          <button class="van-button van-button--default van-button--mini">短袖</button>
+          <button class="van-button van-button--default van-button--mini">长袖</button>
+          <button class="van-button van-button--default van-button--mini">外套</button>
+          <button class="van-button van-button--default van-button--mini">鞋子</button>
+          <button class="van-button van-button--default van-button--mini">其他</button>
+        </div>
+        
+        <!-- 筛选和删除按钮 -->
+        <div class="flex justify-end gap-2 mb-4">
+          <button class="van-button van-button--text" @click="showFilter"><i class="van-icon van-icon-filter-o"></i></button>
+          <button class="van-button van-button--text" @click="showDelete"><i class="van-icon van-icon-delete-o"></i></button>
+        </div>
+        
+        <!-- 衣物列表 -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm">短袖</div>
+              <div class="text-xs text-gray-500 mt-1">纯黑色 基础</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm">短袖</div>
+              <div class="text-xs text-gray-500 mt-1">印花简约</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm">长袖</div>
+              <div class="text-xs text-gray-500 mt-1">纯黑色 基础</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm">长袖</div>
+              <div class="text-xs text-gray-500 mt-1">印花简约</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 添加按钮 -->
+        <button class="fixed bottom-20 right-6 w-14 h-14 rounded-full bg-blue-500 text-white flex justify-center items-center text-2xl" @click="goToSmartWardrobe">
+          +
+        </button>
+      </div>
+
+      <!-- 底部导航 -->
+      <div class="tabbar">
+        <div class="tabbar-item" @click="showPage('homePage')">
+          <i class="van-icon van-icon-home-o text-lg"></i>
+          <span>推荐</span>
+        </div>
+        <div class="tabbar-item active" @click="showPage('wardrobePage')">
+          <i class="van-icon van-icon-box-o text-lg"></i>
+          <span>衣橱</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('historyPage')">
+          <i class="van-icon van-icon-history-o text-lg"></i>
+          <span>历史</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('minePage')">
+          <i class="van-icon van-icon-user-o text-lg"></i>
+          <span>我的</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. 智能衣橱页面 -->
+    <div class="page" id="smartWardrobePage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">智能衣橱</h2>
+        
+        <div class="mb-6">
+          <button class="van-button van-button--primary w-full">生成穿搭</button>
+        </div>
+        
+        <!-- 筛选条件 -->
+        <div class="space-y-4">
+          <div>
+            <h3 class="text-sm font-medium mb-2">穿搭场景</h3>
+            <div class="flex flex-wrap gap-2">
+              <button class="van-button van-button--default van-button--mini">商务休闲</button>
+              <button class="van-button van-button--default van-button--mini">简约通勤</button>
+              <button class="van-button van-button--default van-button--mini">朋友聚会</button>
+              <button class="van-button van-button--default van-button--mini">运动健身</button>
+            </div>
+          </div>
+          
+          <div>
+            <h3 class="text-sm font-medium mb-2">风格</h3>
+            <div class="flex flex-wrap gap-2">
+              <button class="van-button van-button--default van-button--mini">都市街头</button>
+              <button class="van-button van-button--default van-button--mini">轻熟优雅</button>
+              <button class="van-button van-button--default van-button--mini">活力运动</button>
+            </div>
+          </div>
+          
+          <div>
+            <h3 class="text-sm font-medium mb-2">季节</h3>
+            <div class="flex flex-wrap gap-2">
+              <button class="van-button van-button--default van-button--mini">春季</button>
+              <button class="van-button van-button--default van-button--mini">夏季</button>
+              <button class="van-button van-button--default van-button--mini">秋季</button>
+              <button class="van-button van-button--default van-button--mini">冬季</button>
+            </div>
+          </div>
+          
+          <div>
+            <h3 class="text-sm font-medium mb-2">色系</h3>
+            <div class="flex flex-wrap gap-2">
+              <button class="van-button van-button--default van-button--mini">深色</button>
+              <button class="van-button van-button--default van-button--mini">浅色</button>
+              <button class="van-button van-button--default van-button--mini">亮色</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('homePage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 7. 保存页面 -->
+    <div class="page" id="savePage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">智能衣橱</h2>
+        
+        <div class="space-y-4">
+          <div class="van-field">
+            <label class="van-field__label">名称</label>
+            <input type="text" class="van-field__control" placeholder="输入穿搭名称" v-model="outfitName">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">标签</label>
+            <div class="flex flex-wrap gap-2 mb-2">
+              <button class="van-button van-button--primary van-button--mini">上装</button>
+              <button class="van-button van-button--default van-button--mini">通勤职场</button>
+              <button class="van-button van-button--default van-button--mini">运动健身</button>
+              <button class="van-button van-button--default van-button--mini">春季</button>
+              <button class="van-button van-button--default van-button--mini">深色</button>
+            </div>
+          </div>
+          
+          <div class="van-field">
+            <label class="van-field__label">价格</label>
+            <input type="number" class="van-field__control" placeholder="输入价格" v-model="outfitPrice">
+          </div>
+          
+          <button class="van-button van-button--primary w-full mt-8" @click="saveOutfit">保存到衣橱</button>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('smartWardrobePage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 8. 历史页面 -->
+    <div class="page" id="historyPage">
+      <div class="p-4">
+        <h1 class="text-xl font-bold mb-2">刀刀</h1>
+        <p class="text-gray-500 mb-4">重塑日常，表达真我~</p>
+        
+        <!-- 历史记录列表 -->
+        <div class="space-y-4">
+          <div class="bg-gray-50 rounded-lg p-3">
+            <div class="text-xs text-gray-400 mb-2">刚刚</div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-100 rounded p-2 text-center" @click="goToClothesDetail">
+                <div class="text-sm">商务休闲</div>
+              </div>
+              <div class="bg-gray-100 rounded p-2 text-center" @click="goToClothesDetail">
+                <div class="text-sm">简约通勤</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-gray-50 rounded-lg p-3">
+            <div class="text-xs text-gray-400 mb-2">3天前</div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-100 rounded p-2 text-center" @click="goToClothesDetail">
+                <div class="text-sm">朋友聚会</div>
+              </div>
+              <div class="bg-gray-100 rounded p-2 text-center" @click="goToClothesDetail">
+                <div class="text-sm">运动健身</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部导航 -->
+      <div class="tabbar">
+        <div class="tabbar-item" @click="showPage('homePage')">
+          <i class="van-icon van-icon-home-o text-lg"></i>
+          <span>推荐</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('wardrobePage')">
+          <i class="van-icon van-icon-box-o text-lg"></i>
+          <span>衣橱</span>
+        </div>
+        <div class="tabbar-item active" @click="showPage('historyPage')">
+          <i class="van-icon van-icon-history-o text-lg"></i>
+          <span>历史</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('minePage')">
+          <i class="van-icon van-icon-user-o text-lg"></i>
+          <span>我的</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. 服装详细页面 -->
+    <div class="page" id="clothesDetailPage">
+      <div class="p-4">
+        <h2 class="text-lg font-bold mb-4">穿搭详情</h2>
+        
+        <div class="bg-gray-100 rounded-lg p-4 mb-6">
+          <div class="text-center mb-4">
+            <div class="text-sm font-medium">商务休闲</div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white rounded p-2 text-center">
+              <div class="text-sm">短袖</div>
+              <div class="text-xs text-gray-500">纯黑色 基础</div>
+            </div>
+            <div class="bg-white rounded p-2 text-center">
+              <div class="text-sm">牛仔裤</div>
+              <div class="text-xs text-gray-500">纯黑色 基础</div>
+            </div>
+          </div>
+          <div class="text-xs text-gray-400 mt-4 text-center">2025-3-4 11:30</div>
+        </div>
+        
+        <div>
+          <h3 class="text-sm font-medium mb-2">标签</h3>
+          <div class="flex flex-wrap gap-2">
+            <button class="van-button van-button--primary van-button--mini">商务休闲</button>
+            <button class="van-button van-button--default van-button--mini">简约通勤</button>
+            <button class="van-button van-button--default van-button--mini">秋季</button>
+            <button class="van-button van-button--default van-button--mini">深色</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('homePage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 10. 我的页面 -->
+    <div class="page" id="minePage">
+      <div class="p-4">
+        <h1 class="text-xl font-bold mb-2">刀刀</h1>
+        <p class="text-gray-500 mb-6">重塑日常，表达真我~</p>
+        
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+          <div class="text-sm">ID: 7830237845</div>
+        </div>
+        
+        <div class="space-y-2">
+          <button class="van-button van-button--default w-full justify-start" @click="goToUserInfo">
+            <i class="van-icon van-icon-user-o mr-2"></i>个人中心
+          </button>
+          <button class="van-button van-button--default w-full justify-start" @click="goToCollection">
+            <i class="van-icon van-icon-like-o mr-2"></i>我的收藏
+          </button>
+          <button class="van-button van-button--default w-full justify-start" @click="goToSettings">
+            <i class="van-icon van-icon-settings-o mr-2"></i>设置
+          </button>
+          <button class="van-button van-button--default w-full justify-start text-red-500" @click="logout">
+            <i class="van-icon van-icon-power-o mr-2"></i>退出登录
+          </button>
+        </div>
+      </div>
+
+      <!-- 底部导航 -->
+      <div class="tabbar">
+        <div class="tabbar-item" @click="showPage('homePage')">
+          <i class="van-icon van-icon-home-o text-lg"></i>
+          <span>推荐</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('wardrobePage')">
+          <i class="van-icon van-icon-box-o text-lg"></i>
+          <span>衣橱</span>
+        </div>
+        <div class="tabbar-item" @click="showPage('historyPage')">
+          <i class="van-icon van-icon-history-o text-lg"></i>
+          <span>历史</span>
+        </div>
+        <div class="tabbar-item active" @click="showPage('minePage')">
+          <i class="van-icon van-icon-user-o text-lg"></i>
+          <span>我的</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11. 个人信息页面 -->
+    <div class="page" id="userInfoPage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">个人信息</h2>
+        
+        <div class="flex flex-col items-center mb-6">
+          <div class="w-20 h-20 rounded-full bg-gray-200 mb-3" @click="changeAvatar">
+            <i class="van-icon van-icon-camera-o text-3xl text-gray-500 flex justify-center items-center h-full"></i>
+          </div>
+          <div class="van-field w-full">
+            <label class="van-field__label">昵称</label>
+            <input type="text" class="van-field__control" v-model="nickname">
+          </div>
+          <div class="text-sm mt-2">ID号: 7830237845</div>
+        </div>
+        
+        <div class="van-field">
+          <label class="van-field__label">手机号</label>
+          <input type="tel" class="van-field__control" value="112233445566" disabled>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('minePage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 12. 我的收藏页面 -->
+    <div class="page" id="collectionPage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">我的收藏</h2>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm font-medium">商务休闲</div>
+              <div class="text-xs text-gray-500 mt-1">简约而不失格调</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm font-medium">朋友聚会</div>
+              <div class="text-xs text-gray-500 mt-1">轻熟优雅首选</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm font-medium">简约通勤</div>
+              <div class="text-xs text-gray-500 mt-1">时尚与舒适并存</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 rounded-lg p-3" @click="goToClothesDetail">
+            <div class="text-center">
+              <div class="text-sm font-medium">运动健身</div>
+              <div class="text-xs text-gray-500 mt-1">活力年轻搭配</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('minePage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 13. 设置页面 -->
+    <div class="page" id="settingsPage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">设置</h2>
+        
+        <div class="space-y-2">
+          <button class="van-button van-button--default w-full justify-start" @click="goToNotification">
+            <i class="van-icon van-icon-bell-o mr-2"></i>通知
+          </button>
+          <button class="van-button van-button--default w-full justify-start" @click="goToFont">
+            <i class="van-icon van-icon-font-o mr-2"></i>字体
+          </button>
+          <button class="van-button van-button--default w-full justify-start" @click="goToLanguage">
+            <i class="van-icon van-icon-language-o mr-2"></i>语言
+          </button>
+          <button class="van-button van-button--default w-full justify-start" @click="goToResetPwd">
+            <i class="van-icon van-icon-lock-o mr-2"></i>重设密码
+          </button>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('minePage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 14. 通知页面 -->
+    <div class="page" id="notificationPage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">通知</h2>
+        
+        <div class="space-y-4">
+          <div class="van-cell van-cell--switch">
+            <div class="van-cell__title">消息通知</div>
+            <div class="van-cell__value">
+              <van-switch v-model="notifyEnabled" />
+            </div>
+          </div>
+          <div class="van-cell van-cell--switch">
+            <div class="van-cell__title">震动</div>
+            <div class="van-cell__value">
+              <van-switch v-model="vibrateEnabled" />
+            </div>
+          </div>
+          <div class="van-cell van-cell--switch">
+            <div class="van-cell__title">通知显示内容</div>
+            <div class="van-cell__value">
+              <van-switch v-model="showContentEnabled" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('settingsPage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 15. 字体页面 -->
+    <div class="page" id="fontPage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">字体</h2>
+        
+        <div class="space-y-3">
+          <button class="van-button van-button--primary w-full">黑体</button>
+          <button class="van-button van-button--default w-full">宋体</button>
+          <button class="van-button van-button--default w-full">艺术字体</button>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('settingsPage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 16. 语言页面 -->
+    <div class="page" id="languagePage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">语言</h2>
+        
+        <div class="space-y-3">
+          <button class="van-button van-button--primary w-full">简体中文</button>
+          <button class="van-button van-button--default w-full">繁体中文</button>
+          <button class="van-button van-button--default w-full">英文</button>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('settingsPage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+
+    <!-- 17. 重设密码页面 -->
+    <div class="page" id="resetPwdPage">
+      <div class="p-4">
+        <h2 class="text-xl font-bold mb-6">重设密码</h2>
+        
+        <div class="van-cell-group border-0 space-y-4">
+          <div class="van-field">
+            <input type="password" class="van-field__control" placeholder="请输入原密码" v-model="oldPwd">
+          </div>
+          <div class="van-field">
+            <input type="password" class="van-field__control" placeholder="请输入新密码" v-model="newPwd">
+          </div>
+          <div class="van-field">
+            <input type="password" class="van-field__control" placeholder="请再次输入密码" v-model="confirmPwd">
+          </div>
+        </div>
+        
+        <button class="van-button van-button--primary w-full mt-8" @click="resetPassword">确定</button>
+      </div>
+
+      <!-- 返回按钮 -->
+      <button class="fixed top-4 left-4 van-button van-button--text" @click="showPage('settingsPage')">
+        <i class="van-icon van-icon-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+    const app = createApp({
+      data() {
+        return {
+          // 启动页相关
+          skipText: '跳过 3s',
+          countdown: 3,
+          
+          // 登录相关
+          phone: '',
+          code: '',
+          password: '',
+          isPwdLogin: false,
+          
+          // 注册相关
+          regPhone: '',
+          regCode: '',
+          regPassword: '',
+          
+          // 保存穿搭相关
+          outfitName: '',
+          outfitPrice: '',
+          
+          // 设置相关
+          notifyEnabled: true,
+          vibrateEnabled: false,
+          showContentEnabled: true,
+          nickname: '刀刀',
+          
+          // 密码重置相关
+          oldPwd: '',
+          newPwd: '',
+          confirmPwd: ''
+        };
+      },
+      mounted() {
+        // 启动页倒计时
+        const timer = setInterval(() => {
+          this.countdown--;
+          this.skipText = `跳过 ${this.countdown}s`;
+          if (this.countdown <= 0) {
+            clearInterval(timer);
+            this.goToLogin();
+          }
+        }, 1000);
+      },
+      methods: {
+        // 显示指定页面
+        showPage(pageId) {
+          document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+          });
+          document.getElementById(pageId).classList.add('active');
+          
+          // 更新底部导航激活状态
+          const tabItems = document.querySelectorAll('.tabbar-item');
+          tabItems.forEach(item => {
+            item.classList.remove('active');
+          });
+          const activeTab = document.querySelector(`.tabbar-item[onclick="app.showPage('${pageId}')"]`);
+          if (activeTab) activeTab.classList.add('active');
+        },
+        
+        // 跳转登录页
+        goToLogin() {
+          this.showPage('loginPage');
+        },
+        
+        // 跳转注册页
+        goToRegister() {
+          this.showPage('registerPage');
+        },
+        
+        // 切换登录方式
+        toggleLoginType() {
+          this.isPwdLogin = !this.isPwdLogin;
+        },
+        
+        // 获取验证码
+        getCode() {
+          if (!this.phone) {
+            vant.Toast('请输入手机号码');
+            return;
+          }
+          vant.Toast.success('验证码已发送');
+        },
+        
+        // 获取注册验证码
+        getRegCode() {
+          if (!this.regPhone) {
+            vant.Toast('请输入手机号码');
+            return;
+          }
+          vant.Toast.success('验证码已发送');
+        },
+        
+        // 登录
+        login() {
+          if (!this.phone) {
+            vant.Toast('请输入手机号码');
+            return;
+          }
+          if (this.isPwdLogin && !this.password) {
+            vant.Toast('请输入密码');
+            return;
+          }
+          if (!this.isPwdLogin && !this.code) {
+            vant.Toast('请输入验证码');
+            return;
+          }
+          this.showPage('homePage');
+        },
+        
+        // 注册
+        register() {
+          if (!this.regPhone) {
+            vant.Toast('请输入手机号码');
+            return;
+          }
+          if (!this.regCode) {
+            vant.Toast('请输入验证码');
+            return;
+          }
+          if (!this.regPassword) {
+            vant.Toast('请输入密码');
+            return;
+          }
+          vant.Toast.success('注册成功');
+          this.showPage('loginPage');
+        },
+        
+        // 跳转智能衣橱页
+        goToSmartWardrobe() {
+          this.showPage('smartWardrobePage');
+        },
+        
+        // 跳转服装详情页
+        goToClothesDetail() {
+          this.showPage('clothesDetailPage');
+        },
+        
+        // 显示筛选弹窗
+        showFilter() {
+          vant.Toast('筛选功能待实现');
+        },
+        
+        // 显示删除弹窗
+        showDelete() {
+          vant.Toast('删除功能待实现');
+        },
+        
+        // 收藏服装
+        collectClothes() {
+          vant.Toast.success('收藏成功');
+        },
+        
+        // 保存穿搭
+        saveOutfit() {
+          if (!this.outfitName) {
+            vant.Toast('请输入穿搭名称');
+            return;
+          }
+          vant.Toast.success('保存成功');
+          this.showPage('wardrobePage');
+        },
+        
+        // 跳转个人信息页
+        goToUserInfo() {
+          this.showPage('userInfoPage');
+        },
+        
+        // 跳转我的收藏页
+        goToCollection() {
+          this.showPage('collectionPage');
+        },
+        
+        // 跳转设置页
+        goToSettings() {
+          this.showPage('settingsPage');
+        },
+        
+        // 跳转通知页
+        goToNotification() {
+          this.showPage('notificationPage');
+        },
+        
+        // 跳转字体页
+        goToFont() {
+          this.showPage('fontPage');
+        },
+        
+        // 跳转语言页
+        goToLanguage() {
+          this.showPage('languagePage');
+        },
+        
+        // 跳转重设密码页
+        goToResetPwd() {
+          this.showPage('resetPwdPage');
+        },
+        
+        // 更换头像
+        changeAvatar() {
+          vant.ActionSheet.create({
+            actions: [
+              { name: '拍照' },
+              { name: '从相册选取' }
+            ],
+            onSelect: (action) => {
+              vant.Toast(action.name + '功能待实现');
+            }
+          }).show();
+        },
+        
+        // 重设密码
+        resetPassword() {
+          if (!this.oldPwd) {
+            vant.Toast('请输入原密码');
+            return;
+          }
+          if (!this.newPwd) {
+            vant.Toast('请输入新密码');
+            return;
+          }
+          if (this.newPwd !== this.confirmPwd) {
+            vant.Toast('两次密码输入不一致');
+            return;
+          }
+          vant.Toast.success('密码重置成功');
+          this.showPage('settingsPage');
+        },
+        
+        // 退出登录
+        logout() {
+          vant.Dialog.confirm({
+            title: '提示',
+            message: '确定要退出登录吗？'
+          }).then(() => {
+            this.showPage('loginPage');
+          });
+        }
+      }
+    }).mount('#app');
+
+    // 暴露app到全局，用于模板字符串中的onclick调用
+    window.app = app;
+  </script>
+</body>
+</html>
