@@ -79,53 +79,6 @@ class GarmentResponse(BaseModel):
     image_url: str
     tags: List[str]
     season: Optional[str]
-    reason: Optional[str] = None  # 标签识别理由
-    created_at: datetime
-    
-    model_config = {"from_attributes": True}
-
-
-# ------------------------------ 结构化标签模型 ------------------------------
-class StructuredTag(BaseModel):
-    """结构化标签信息"""
-    category: str  # 衣物类别：上衣/裤子/外套/鞋等
-    style: str  # 风格：休闲/正式/运动等
-    material: str  # 材质：棉/聚酯/羊毛等
-    color_palette: List[str]  # 颜色调色板：["白色", "浅灰色"]
-    confidence: float = Field(ge=0, le=1)  # 识别置信度（0-1）
-    reason: str  # 识别理由/解释
-    
-    model_config = {"from_attributes": True}
-
-
-class AutoTagResponse(BaseModel):
-    """自动标签识别响应"""
-    success: bool = True
-    message: str = "标签识别成功"
-    tag_info: Optional[StructuredTag] = None  # 结构化标签信息
-    raw_tags: List[str] = Field(default=list)  # 原始标签列表（向后兼容）
-    
-    model_config = {"from_attributes": True}
-
-
-class FeedbackCreate(BaseModel):
-    """创建反馈请求"""
-    garment_id: Optional[int] = None
-    tryon_record_id: Optional[int] = None
-    feedback_type: str  # tag_accuracy/recommendation_quality/general
-    feedback_text: str
-    rating: Optional[int] = Field(None, ge=1, le=5)
-
-
-class FeedbackResponse(BaseModel):
-    """反馈信息响应"""
-    id: int
-    owner_id: int
-    garment_id: Optional[int]
-    tryon_record_id: Optional[int]
-    feedback_type: str
-    feedback_text: str
-    rating: Optional[int]
     created_at: datetime
     
     model_config = {"from_attributes": True}
@@ -175,6 +128,7 @@ class RecommendationItem(BaseModel):
     garments: List[GarmentResponse]
     description: str
     reason: str  # 推荐理由（如"适合当前天气"）
+    confidence: float = Field(default=0.75, ge=0.0, le=1.0)
     preview_image_url: Optional[str] = None
 
 class RecommendationResponse(BaseModel):
@@ -191,6 +145,26 @@ class RecommendationRecordResponse(BaseModel):
     garments: List[GarmentResponse]
     description: str
     reason: str
+    confidence: Optional[float] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ------------------------------ 反馈模型 ------------------------------
+class FeedbackCreate(BaseModel):
+    """用户反馈请求"""
+    outfit_id: Optional[int] = None
+    action: str
+    meta: Optional[Dict[str, Any]] = None
+
+
+class FeedbackResponse(BaseModel):
+    id: int
+    owner_id: int
+    outfit_id: Optional[int]
+    action: str
+    meta: Optional[Dict[str, Any]]
     created_at: datetime
 
     model_config = {"from_attributes": True}

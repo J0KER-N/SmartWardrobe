@@ -76,6 +76,8 @@ if cors_origins:
 # 注册路由
 app.include_router(auth.router)
 app.include_router(wardrobe.router)
+from .routers import feedback as feedback_router
+app.include_router(feedback_router.router)
 
 # 可选路由：仅在配置中开启时导入并注册，避免在本地启动时触发外部调用
 if settings.enable_tryon:
