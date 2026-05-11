@@ -709,36 +709,53 @@ def _generate_tryon_modelscope(user_photo_url: str, garment_image_url: str) -> D
         raise AIClientError(f"调用失败: {str(e)}")
 
 # ------------------------------ 衣物标签识别（百川大模型） ------------------------------
-def extract_garment_tags(image_data: bytes) -> List[str]:
-    """提取衣物标签（使用百川大模型）"""
+def extract_garment_tags(image_data: bytes) -> Dict[str, any]:
+    """提取衣物标签（使用百川大模型），返回结构化标签信息
+    
+    返回格式：
+    {
+        "category": "上衣",
+        "style": "休闲",
+        "material": "棉",
+        "color_palette": ["白色", "浅灰"],
+        "confidence": 0.85,
+        "reason": "这是一件白色棉质短袖T恤..."
+    }
+    """
     if not settings.baichuan_api_key:
-        logger.warning("百川API未配置，返回默认标签")
-        return ["未识别标签"]
+        logger.warning("百川API未配置，返回默认结构化标签")
+        return _get_default_structured_tags()
     
     # 将图片转换为base64编码
     image_base64 = base64.b64encode(image_data).decode()
     
-    # 构建提示词，让百川大模型分析图片并返回标签
-    prompt = """请分析这张衣物图片，识别并返回衣物的标签。
+    # 构建更结构化的提示词，让百川大模型返回结构化信息
+    prompt = """请分析这张衣物图片，识别并返回衣物的结构化信息。
+
 要求：
-1. 返回5-8个最相关的标签
-2. 标签应该包括：类别（如上衣、裤子、外套等）、风格（如休闲、正式、运动等）、颜色、季节、材质等
-3. 标签之间用中文逗号分隔
-4. 只返回标签，不要其他说明文字
-5. 如果无法识别，返回"未识别标签"
+1. 返回JSON格式的结构化数据
+2. 包含以下字段（用中文）：
+   - category: 衣物类别（如：上衣、裤子、外套、鞋等）
+   - style: 风格（如：休闲、正式、运动、简约等）
+   - material: 材质（如：棉、聚酯纤维、羊毛、牛仔等）
+   - color_palette: 颜色调色板（列表，如：["白色", "灰色"]）
+   - confidence: 识别置信度（0-1之间的数字）
+   - reason: 识别理由（简短说明为什么这样识别）
 
-示例格式：休闲,短袖,白色,夏季,棉质,简约,日常
+3. 示例格式：
+{
+    "category": "上衣",
+    "style": "休闲",
+    "material": "棉",
+    "color_palette": ["白色", "浅灰色"],
+    "confidence": 0.9,
+    "reason": "这是一件白色棉质短袖T恤，风格休闲，适合日常穿着"
+}
 
-请直接返回标签："""
+请直接返回JSON，不要其他说明文字。"""
     
-    # 由于百川大模型可能不支持直接图片输入，我们使用文字描述的方式
-    # 通过提示词让模型根据图片特征生成标签
-    # 注意：这里我们无法直接发送图片，所以使用通用的提示词
-    # 如果需要真正的图片识别，需要百川支持vision模型或使用其他服务
-    
-    # 尝试使用支持图片的 API 格式（如果百川支持），否则回退到文字描述方式
+    # 尝试使用支持图片的 API 格式
     try:
-        # 先尝试使用图片输入的格式
         payload = {
             "model": settings.baichuan_model,
             "messages": [
@@ -756,7 +773,7 @@ def extract_garment_tags(image_data: bytes) -> List[str]:
                 }
             ],
             "temperature": 0.3,
-            "max_tokens": 200,
+            "max_tokens": 300,
         }
 
         headers = {
@@ -764,7 +781,7 @@ def extract_garment_tags(image_data: bytes) -> List[str]:
             "Content-Type": "application/json",
         }
 
-        logger.info("调用百川大模型进行标签识别（尝试图片输入）")
+        logger.info("调用百川大模型进行结构化标签识别（尝试图片输入）")
         logger.debug(f"百川API端点: {settings.baichuan_endpoint}, 模型: {settings.baichuan_model}")
         result = _sync_post_json(
             url=settings.baichuan_endpoint,
@@ -773,7 +790,7 @@ def extract_garment_tags(image_data: bytes) -> List[str]:
             timeout=60,
             use_proxy=True,  # 百川API可能需要代理
         )
-
+        
         # 解析响应
         content = ""
         if "choices" in result:
@@ -787,22 +804,164 @@ def extract_garment_tags(image_data: bytes) -> List[str]:
             )
 
         if content and "未识别" not in content:
-            tags = _parse_tags_from_response(content)
-            if tags:
-                logger.info(f"识别到标签: {tags}")
-                return tags
+            structured_tag = _parse_structured_tags_from_response(content)
+            if structured_tag:
+                logger.info(f"识别到结构化标签: {structured_tag}")
+                return structured_tag
 
         # 如果图片输入失败，使用备用方案
         logger.info("图片输入方式失败，使用文字描述方式")
-        return _extract_tags_fallback(image_data)
+        return _extract_structured_tags_fallback(image_data)
 
     except (AIClientError, KeyError, TypeError) as e:
         # API 不支持图片输入格式，使用备用方案
         logger.info(f"图片输入格式不支持，使用文字描述方式: {str(e)}")
-        return _extract_tags_fallback(image_data)
+        return _extract_structured_tags_fallback(image_data)
     except Exception as e:
         logger.error(f"标签识别异常: {str(e)}")
-        return _extract_tags_fallback(image_data)
+        return _extract_structured_tags_fallback(image_data)
+
+def _parse_structured_tags_from_response(content: str) -> Optional[Dict]:
+    """从AI响应中解析结构化标签（JSON格式）"""
+    import json
+    import re
+    
+    if not content:
+        return None
+    
+    # 尝试直接解析JSON
+    try:
+        # 首先尝试直接解析（假设响应是纯JSON）
+        structured_tag = json.loads(content)
+        
+        # 验证必要字段
+        required_fields = ['category', 'style', 'material', 'color_palette', 'confidence', 'reason']
+        if all(field in structured_tag for field in required_fields):
+            # 验证数据类型
+            if (isinstance(structured_tag.get('category'), str) and
+                isinstance(structured_tag.get('style'), str) and
+                isinstance(structured_tag.get('material'), str) and
+                isinstance(structured_tag.get('color_palette'), list) and
+                isinstance(structured_tag.get('confidence'), (int, float)) and
+                isinstance(structured_tag.get('reason'), str)):
+                
+                # 确保 confidence 在 0-1 范围内
+                structured_tag['confidence'] = max(0, min(1, float(structured_tag.get('confidence', 0.5))))
+                logger.info(f"成功解析结构化标签: {structured_tag}")
+                return structured_tag
+    except json.JSONDecodeError:
+        pass
+    
+    # 如果直接解析失败，尝试从文本中提取JSON
+    try:
+        # 查找 JSON 对象的开始和结束
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            structured_tag = json.loads(json_str)
+            
+            # 同上面一样的验证
+            required_fields = ['category', 'style', 'material', 'color_palette', 'confidence', 'reason']
+            if all(field in structured_tag for field in required_fields):
+                if (isinstance(structured_tag.get('category'), str) and
+                    isinstance(structured_tag.get('style'), str) and
+                    isinstance(structured_tag.get('material'), str) and
+                    isinstance(structured_tag.get('color_palette'), list) and
+                    isinstance(structured_tag.get('confidence'), (int, float)) and
+                    isinstance(structured_tag.get('reason'), str)):
+                    
+                    structured_tag['confidence'] = max(0, min(1, float(structured_tag.get('confidence', 0.5))))
+                    logger.info(f"从文本中成功提取结构化标签: {structured_tag}")
+                    return structured_tag
+    except (json.JSONDecodeError, AttributeError):
+        pass
+    
+    logger.warning(f"无法解析结构化标签，内容: {content[:200]}")
+    return None
+
+
+def _get_default_structured_tags() -> Dict:
+    """获取默认的结构化标签"""
+    return {
+        "category": "未识别",
+        "style": "未识别",
+        "material": "未识别",
+        "color_palette": ["未识别"],
+        "confidence": 0.0,
+        "reason": "无法识别标签，请重新上传清晰的衣物图片"
+    }
+
+
+def _extract_structured_tags_fallback(image_data: bytes) -> Dict:
+    """备用方案：返回结构化标签（使用文字描述）"""
+    if not settings.baichuan_api_key:
+        return _get_default_structured_tags()
+    
+    # 备用方案：由于无法直接输入图片，我们使用通用的提示词
+    prompt = """请为一件衣物生成结构化的标签信息。
+
+返回JSON格式，包含以下字段：
+{
+    "category": "衣物类别如上衣、裤子等",
+    "style": "风格如休闲、正式等",
+    "material": "材质如棉、聚酯等",
+    "color_palette": ["颜色1", "颜色2"],
+    "confidence": 0.7,
+    "reason": "这是一件...的衣物"
+}
+
+示例：
+{
+    "category": "上衣",
+    "style": "休闲",
+    "material": "棉",
+    "color_palette": ["白色", "灰色"],
+    "confidence": 0.8,
+    "reason": "这是一件白色棉质短袖T恤，风格休闲"
+}
+
+请直接返回JSON，不要其他说明文字。"""
+    
+    payload = {
+        "model": settings.baichuan_model,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 300
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {settings.baichuan_api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        logger.info("使用备用方案生成结构化标签（文字描述）")
+        result = _sync_post_json(
+            url=settings.baichuan_endpoint,
+            payload=payload,
+            headers=headers,
+            timeout=30,
+            use_proxy=True,
+        )
+        
+        content = ""
+        if "choices" in result:
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        elif "output" in result:
+            content = result.get("output", {}).get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        if content:
+            structured_tag = _parse_structured_tags_from_response(content)
+            if structured_tag:
+                logger.info(f"备用方案生成结构化标签: {structured_tag}")
+                return structured_tag
+    except Exception as e:
+        logger.error(f"备用方案标签识别失败: {str(e)}")
+    
+    return _get_default_structured_tags()
+
 
 def _parse_tags_from_response(content: str) -> List[str]:
     """从响应文本中解析标签"""
