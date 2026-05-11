@@ -298,7 +298,6 @@ const api = {
     weatherAPI: {
         // 获取天气
         getWeather: async (city) => {
-            // 模拟天气数据，实际项目中调用后端接口
             return new Promise(resolve => {
                 setTimeout(() => {
                     resolve({
@@ -309,8 +308,19 @@ const api = {
                     });
                 }, 500);
             });
-            // 实际接口调用：
-            // return request(`/weather?city=${encodeURIComponent(city)}`);
+        },
+    },
+    
+    // 推荐反馈
+    feedbackAPI: {
+        postFeedback: async (recommendationId, action) => {
+            return request('/recommendations/feedback', {
+                method: 'POST',
+                body: JSON.stringify({
+                    recommendation_id: recommendationId,
+                    action: action,
+                }),
+            });
         },
     },
 };

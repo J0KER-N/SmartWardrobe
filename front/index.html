@@ -262,11 +262,12 @@
     .clothes-item:active {
       transform: scale(0.98);
     }
-    .clothes-checkbox {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      z-index: 10;
+
+    .home-empty-text {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+      margin-bottom: 6px;
     }
     /* 智能衣橱标签选中样式 */
     .wardrobe-tag {
@@ -969,8 +970,56 @@
       line-height: 1.5;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2; /* Define the standard property for compatibility */
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+
+    .home-rec-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .home-rec-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 8px;
+      border: none;
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(0,0,0,0.04);
+      color: var(--ios-text-3);
+    }
+
+    .home-rec-btn:active {
+      transform: scale(0.95);
+    }
+
+    .home-rec-btn-like.active {
+      background: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+    }
+
+    .home-rec-btn-like.active svg {
+      fill: #ff3b30;
+    }
+
+    .home-rec-btn-dislike:active {
+      background: rgba(255, 149, 0, 0.1);
+      color: #ff9500;
+    }
+
+    .home-rec-btn-tryon {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+    }
+
+    .home-rec-btn-tryon:active {
+      background: rgba(0, 122, 255, 0.2);
     }
 
     .home-empty {
@@ -1393,6 +1442,7 @@
               :key="rec.id || index"
               class="home-rec-card"
               @click="goToRecommendationDetail(rec)"
+              v-show="!rec._hidden"
             >
               <div class="home-rec-img-wrap" v-if="rec.garments && rec.garments.length > 0">
                 <img :src="getImageUrl(rec.garments[0].image_url)" :alt="rec.description || '推荐穿搭'" class="home-rec-img">
@@ -1404,6 +1454,20 @@
                 </div>
                 <div class="home-rec-reason" v-if="rec.reason">
                   {{ rec.reason }}
+                </div>
+                <div class="home-rec-actions" @click.stop>
+                  <button class="home-rec-btn home-rec-btn-like" :class="{ active: rec._liked }" @click="toggleLikeRec(rec)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    喜欢
+                  </button>
+                  <button class="home-rec-btn home-rec-btn-dislike" @click="dislikeRec(rec)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    不感兴趣
+                  </button>
+                  <button class="home-rec-btn home-rec-btn-tryon" @click="tryRecOn(rec)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    试穿
+                  </button>
                 </div>
               </div>
             </div>
@@ -3146,6 +3210,41 @@
         
         goToSmartWardrobe() {
           this.showPage('smartWardrobePage');
+        },
+
+        toggleLikeRec(rec) {
+          rec._liked = !rec._liked;
+          if (window.api && window.api.feedbackAPI) {
+            window.api.feedbackAPI.postFeedback(rec.id, rec._liked ? 'like' : 'unlike');
+          }
+        },
+
+        dislikeRec(rec) {
+          rec._hidden = true;
+          if (window.api && window.api.feedbackAPI) {
+            window.api.feedbackAPI.postFeedback(rec.id, 'dislike');
+          }
+        },
+
+        tryRecOn(rec) {
+          if (rec.garments && rec.garments.length > 0) {
+            const garment = this.clothesList.find(item => item.id === rec.garments[0].id);
+            if (garment) {
+              this.currentTryonGarment = garment;
+            } else {
+              this.currentTryonGarment = rec.garments[0];
+            }
+          } else {
+            this.currentTryonGarment = null;
+          }
+          this.tryonUserPhoto = '';
+          this.tryonUserPhotoFile = null;
+          this.tryonResult = null;
+          this.isGeneratingTryon = false;
+          this.showPage('tryonPage');
+          if (window.api && window.api.feedbackAPI) {
+            window.api.feedbackAPI.postFeedback(rec.id, 'tryon');
+          }
         },
         
         goToSavePage() {
