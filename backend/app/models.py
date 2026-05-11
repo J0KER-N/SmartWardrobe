@@ -21,6 +21,7 @@ class User(Base):
     garments = relationship("Garment", back_populates="owner", cascade="all, delete-orphan")
     tryon_records = relationship("TryonRecord", back_populates="owner", cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="owner", cascade="all, delete-orphan")
+    feedbacks = relationship("Feedback", back_populates="owner", cascade="all, delete-orphan")
 
 class Garment(Base):
     """衣物模型"""
@@ -34,6 +35,7 @@ class Garment(Base):
     image_url = Column(String, nullable=False)
     tags = Column(JSON, default=list)  # 标签列表：["休闲", "红色", "夏季"]
     season = Column(String, nullable=True)  # 春/夏/秋/冬
+    reason = Column(String, nullable=True)  # 标签识别理由：为什么这样识别这个衣物
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
@@ -41,6 +43,7 @@ class Garment(Base):
     # 关联关系
     owner = relationship("User", back_populates="garments")
     tryon_records = relationship("TryonRecord", back_populates="garment")
+    feedbacks = relationship("Feedback", back_populates="garment", cascade="all, delete-orphan")
 
 class TryonRecord(Base):
     """虚拟试穿记录"""
@@ -87,3 +90,22 @@ class RecommendationRecord(Base):
 
     # 关联关系
     owner = relationship("User")
+
+
+class Feedback(Base):
+    """用户反馈记录"""
+    __tablename__ = "feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    garment_id = Column(Integer, ForeignKey("garments.id"), nullable=True)  # 关联衣物（可选）
+    tryon_record_id = Column(Integer, ForeignKey("tryon_records.id"), nullable=True)  # 关联试穿记录（可选）
+    feedback_type = Column(String, nullable=False)  # 反馈类型：tag_accuracy/recommendation_quality/general
+    feedback_text = Column(String, nullable=False)  # 反馈内容
+    rating = Column(Integer, nullable=True)  # 评分：1-5
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # 关联关系
+    owner = relationship("User")
+    garment = relationship("Garment", back_populates="feedbacks")
+    tryon_record = relationship("TryonRecord")
