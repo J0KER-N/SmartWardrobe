@@ -313,6 +313,19 @@ const api = {
             // return request(`/weather?city=${encodeURIComponent(city)}`);
         },
     },
+    
+    // 推荐反馈
+    feedbackAPI: {
+        postFeedback: async (recommendationId, action) => {
+            return request('/recommendations/feedback', {
+                method: 'POST',
+                body: JSON.stringify({
+                    recommendation_id: recommendationId,
+                    action: action,  // 'like' | 'unlike' | 'dislike' | 'tryon'
+                }),
+            });
+        },
+    },
 };
 
 // 暴露API对象和配置
