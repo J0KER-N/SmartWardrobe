@@ -16,8 +16,9 @@
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background-color: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: #f8f9fa;
+      -webkit-font-smoothing: antialiased;
     }
     .page {
       position: fixed;
@@ -26,9 +27,10 @@
       width: 100%;
       height: 100%;
       overflow-y: auto;
-      background-color: #fff;
+      background-color: #f8f9fa;
       display: none;
-      padding-top: 50px; /* 为顶部返回键预留空间 */
+      padding-top: 50px;
+      padding-bottom: 80px; /* 留出底部导航空间 */
     }
     .page.active {
       display: block;
@@ -40,13 +42,14 @@
       left: 0;
       width: 100%;
       height: 50px;
-      background-color: #fff;
-      border-bottom: 1px solid #eee;
+      background-color: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       padding: 0 16px;
       box-sizing: border-box;
       z-index: 998;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.02);
     }
     .top-nav-title {
       flex: 1;
@@ -60,23 +63,38 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 50px;
-      background-color: #fff;
-      border-top: 1px solid #eee;
+      height: 60px;
+      background-color: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0,0,0,0.05);
       display: flex;
       justify-content: space-around;
       align-items: center;
+      padding-bottom: env(safe-area-inset-bottom);
       z-index: 999;
+      box-shadow: 0 -1px 10px rgba(0,0,0,0.02);
     }
     .tabbar-item {
       display: flex;
       flex-direction: column;
       align-items: center;
-      font-size: 12px;
-      color: #666;
+      justify-content: center;
+      flex: 1;
+      height: 100%;
+      font-size: 10px;
+      color: #999;
+      transition: color 0.3s ease;
+    }
+    .tabbar-item i, .tabbar-item .custom-icon {
+      font-size: 22px;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .tabbar-item.active {
-      color: #1989fa;
+      color: #333;
+      font-weight: 600;
     }
     /* 启动页样式 */
     .splash {
@@ -84,32 +102,123 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
-      padding-top: 0; /* 启动页不需要顶部预留空间 */
-      text-align: center; /* 文字居中 */
+      background: linear-gradient(160deg, #f8f9fc 0%, #f0f2f5 50%, #eceef2 100%) !important;
+      padding-top: 0;
+      text-align: center;
     }
-    .splash-start-img {
-      margin: 0 auto; /* 水平居中 */
-      display: block; /* 确保图片为块级元素，margin: 0 auto 生效 */
-      max-width: 100%;
-      height: auto;
-    }
-    .splash-logo {
-      font-size: 32px;
-      font-weight: bold;
-      color: #1989fa;
-      margin-top: 20px; /* 图片在文字上方，所以给文字添加上边距 */
-      margin-bottom: 10px;
-    }
-    .skip-btn {
+
+    .splash-skip {
       position: absolute;
-      top: 20px;
+      top: max(20px, env(safe-area-inset-top));
       right: 20px;
-      padding: 5px 10px;
-      background: rgba(0,0,0,0.1);
+      padding: 7px 16px;
+      background: rgba(255, 255, 255, 0.72) !important;
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border: 0.5px solid rgba(255, 255, 255, 0.5) !important;
       border-radius: 20px;
-      color: #333;
-      font-size: 14px;
+      color: var(--ios-text-2) !important;
+      font-size: 13px !important;
+      font-weight: 500;
+      cursor: pointer;
+      letter-spacing: 0.2px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+      animation: fadeIn 0.6s ease forwards;
+    }
+
+    .splash-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .splash-icon-wrap {
+      width: 100px;
+      height: 100px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+      margin-bottom: 28px;
+      animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .splash-icon-svg {
+      color: var(--ios-text-1) !important;
+      opacity: 0.85;
+    }
+
+    .splash-title {
+      font-size: 28px !important;
+      font-weight: 700 !important;
+      color: var(--ios-text-1) !important;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      animation: fadeInUp 0.8s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .splash-subtitle {
+      font-size: 14px !important;
+      color: var(--ios-text-3) !important;
+      letter-spacing: 1px;
+      animation: fadeInUp 0.8s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .splash-loader {
+      position: absolute;
+      bottom: max(40px, env(safe-area-inset-bottom));
+      display: flex;
+      gap: 6px;
+      animation: fadeIn 1s 0.4s ease both;
+    }
+
+    .splash-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ios-text-3) !important;
+      opacity: 0.4;
+      animation: splashPulse 1.2s ease-in-out infinite;
+    }
+
+    .splash-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .splash-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes splashPulse {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.85);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1);
+      }
     }
     /* 内容容器样式 */
     .content {
@@ -121,7 +230,8 @@
       height: 120px;
       overflow: hidden;
       border-radius: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      background-color: #f0f2f5;
     }
     .img-container img {
       width: 100%;
@@ -135,18 +245,29 @@
     }
     /* 分类按钮激活状态 */
     .category-btn.active {
-      background-color: #1989fa;
+      background-color: #333;
+      border-color: #333;
       color: #fff;
+      font-weight: 500;
     }
     /* 选择删除样式 */
     .clothes-item {
       position: relative;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      overflow: hidden;
+      transition: transform 0.2s;
     }
-    .clothes-checkbox {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      z-index: 10;
+    .clothes-item:active {
+      transform: scale(0.98);
+    }
+
+    .home-empty-text {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+      margin-bottom: 6px;
     }
     /* 智能衣橱标签选中样式 */
     .wardrobe-tag {
@@ -267,70 +388,971 @@
     .file-input {
       display: none;
     }
+  
+    /* 统一按钮样式 */
+    .van-button--primary {
+      background-color: #222 !important;
+      border-color: #222 !important;
+      border-radius: 8px !important;
+    }
+    .van-button--default {
+      border-radius: 8px !important;
+    }
+    .van-button--mini {
+      border-radius: 6px !important;
+    }
+    /* 顶部导航标题字重 */
+    .top-nav-title {
+      font-weight: 600 !important;
+      color: #111;
+    }
+    /* 修复文字颜色 */
+    .text-blue-500 {
+      color: #333 !important;
+    }
+    .bg-blue-500 {
+      background-color: #333 !important;
+    }
+    .bg-blue-50 {
+      background-color: #f8f9fa !important;
+    }
+    .text-blue-800 {
+      color: #555 !important;
+    }
+    .bg-blue-100 {
+      background-color: #eee !important;
+    }
+    .text-blue-600 {
+      color: #666 !important;
+    }
+    /* 移除原生顶部边框 */
+    .top-nav {
+      border-bottom: none !important;
+    }
+
   </style>
+
+  
+
+
+  
+
+
+  
+
+
+
+  
+
+
+
+  <style id="ios-design">
+    :root {
+      --ios-bg: #f2f2f7;
+      --ios-surface: #ffffff;
+      --ios-text-1: #1c1c1e;
+      --ios-text-2: #3c3c43;
+      --ios-text-3: #8e8e93;
+      --ios-separator: rgba(60, 60, 67, 0.12);
+      --ios-active: #1c1c1e;
+      --ios-inactive: #8e8e93;
+      --ios-radius-lg: 16px;
+      --ios-radius-md: 12px;
+      --ios-radius-sm: 10px;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background-color: var(--ios-bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .page {
+      background-color: var(--ios-bg) !important;
+    }
+
+    .page.active {
+      background-color: var(--ios-bg) !important;
+    }
+
+    .top-nav {
+      background-color: rgba(249, 249, 249, 0.94) !important;
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 0.5px solid var(--ios-separator) !important;
+      box-shadow: none !important;
+    }
+
+    .top-nav-title {
+      font-weight: 600 !important;
+      font-size: 17px !important;
+      color: var(--ios-text-1) !important;
+      letter-spacing: -0.3px;
+    }
+
+    .tabbar {
+      background-color: rgba(249, 249, 249, 0.94) !important;
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-top: 0.5px solid var(--ios-separator) !important;
+      box-shadow: none !important;
+      height: 83px !important;
+      padding-bottom: 34px !important;
+      padding-top: 4px !important;
+    }
+
+    .tabbar-item {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      flex: 1 !important;
+      color: var(--ios-inactive) !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.2px;
+      padding-top: 6px !important;
+      height: auto !important;
+      transition: color 0.2s ease;
+    }
+
+    .tabbar-item.active {
+      color: var(--ios-active) !important;
+    }
+
+    .tabbar-item.active svg {
+      stroke-width: 2px !important;
+    }
+
+    .tabbar-item svg {
+      transition: stroke-width 0.2s ease;
+    }
+
+    .content {
+      padding: 18px 20px !important;
+    }
+
+    .text-sm { font-size: 14px !important; }
+    .text-xs { font-size: 12px !important; }
+    .text-lg { font-size: 17px !important; }
+    .text-base { font-size: 16px !important; }
+
+    .text-gray-500, .text-gray-400 {
+      color: var(--ios-text-3) !important;
+    }
+
+    .clothes-item,
+    .bg-gray-100,
+    .bg-gray-50 {
+      background-color: var(--ios-surface) !important;
+      border-radius: var(--ios-radius-lg) !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 0 1px rgba(0, 0, 0, 0.02) !important;
+      border: none !important;
+      overflow: hidden;
+    }
+
+    .img-container {
+      border-radius: var(--ios-radius-md) !important;
+      background-color: var(--ios-bg) !important;
+    }
+
+    .van-button {
+      border-radius: var(--ios-radius-sm) !important;
+      font-weight: 500 !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .van-button--primary {
+      background-color: var(--ios-active) !important;
+      border-color: var(--ios-active) !important;
+      color: #fff !important;
+      border-radius: var(--ios-radius-lg) !important;
+      font-weight: 600 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .van-button--default {
+      background-color: var(--ios-surface) !important;
+      border: 0.5px solid var(--ios-separator) !important;
+      color: var(--ios-text-1) !important;
+    }
+
+    .van-button--danger {
+      border-radius: var(--ios-radius-sm) !important;
+    }
+
+    .wardrobe-tag,
+    .category-btn,
+    .detail-tag {
+      border-radius: 6px !important;
+      font-size: 12px !important;
+      font-weight: 400 !important;
+      border: 0.5px solid var(--ios-separator) !important;
+      background-color: var(--ios-surface) !important;
+      color: var(--ios-text-2) !important;
+      padding: 5px 10px !important;
+    }
+
+    .wardrobe-tag.active,
+    .category-btn.active,
+    .detail-tag.active {
+      background-color: var(--ios-active) !important;
+      border-color: var(--ios-active) !important;
+      color: #fff !important;
+    }
+
+    .bg-blue-50 {
+      background-color: var(--ios-bg) !important;
+      border-radius: var(--ios-radius-md) !important;
+    }
+
+    .bg-blue-100 {
+      background-color: var(--ios-bg) !important;
+    }
+
+    .text-blue-800 {
+      color: var(--ios-text-2) !important;
+    }
+
+    .text-blue-500 {
+      color: var(--ios-text-1) !important;
+    }
+
+    .text-blue-600 {
+      color: var(--ios-text-3) !important;
+    }
+
+    .border-gray-200 {
+      border-color: var(--ios-separator) !important;
+    }
+
+    .mine-function-btn {
+      background-color: transparent !important;
+      border: none !important;
+      border-bottom: 0.5px solid var(--ios-separator) !important;
+      border-radius: 0 !important;
+      padding: 14px 0 !important;
+      color: var(--ios-text-1) !important;
+      font-size: 15px !important;
+      font-weight: 400 !important;
+    }
+
+    .user-info {
+      padding: 12px 0 !important;
+    }
+
+    .user-name {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+    }
+
+    .van-swipe__indicator {
+      background-color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .van-swipe__indicator--active {
+      background-color: #fff !important;
+    }
+
+    .van-field__control {
+      font-size: 15px !important;
+    }
+
+    .mine-content {
+      padding: 20px 16px 20px !important;
+    }
+
+    .mine-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background-color: var(--ios-surface) !important;
+      border-radius: 16px !important;
+      padding: 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 0 1px rgba(0, 0, 0, 0.02) !important;
+    }
+
+    .mine-avatar-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid rgba(0, 0, 0, 0.04);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .mine-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .mine-profile-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .mine-profile-name {
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mine-profile-sign {
+      font-size: 13px !important;
+      color: var(--ios-text-3) !important;
+      margin-bottom: 3px;
+    }
+
+    .mine-profile-id {
+      font-size: 11px !important;
+      color: var(--ios-text-3) !important;
+      opacity: 0.6;
+      letter-spacing: 0.5px;
+    }
+
+    .mine-group-card {
+      background-color: var(--ios-surface) !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 0 1px rgba(0, 0, 0, 0.02) !important;
+      margin-bottom: 12px;
+    }
+
+    .mine-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 14px 18px !important;
+      background-color: transparent !important;
+      border: none !important;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .mine-list-item:active {
+      background-color: rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .mine-list-item-last {
+      border-bottom: none !important;
+    }
+
+    .mine-list-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--ios-text-1) !important;
+      font-size: 15px !important;
+      font-weight: 400 !important;
+    }
+
+    .mine-list-left svg {
+      color: var(--ios-text-3) !important;
+      flex-shrink: 0;
+    }
+
+    .mine-chevron {
+      color: var(--ios-text-3) !important;
+      flex-shrink: 0;
+    }
+
+    .mine-divider {
+      height: 0.5px;
+      background-color: var(--ios-separator) !important;
+      margin: 0 18px;
+    }
+
+    .mine-logout-btn {
+      display: block;
+      width: 100%;
+      padding: 14px 0 !important;
+      background-color: transparent !important;
+      border: none !important;
+      color: #ff3b30 !important;
+      font-size: 16px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      text-align: center;
+      border-radius: 16px !important;
+      background-color: var(--ios-surface) !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 0 1px rgba(0, 0, 0, 0.02) !important;
+      transition: background-color 0.15s ease !important;
+    }
+
+    .mine-logout-btn:active {
+      background-color: rgba(255, 59, 48, 0.06) !important;
+    }
+
+    /* === HOME PAGE === */
+    .home-content {
+      padding: 16px !important;
+      padding-bottom: 100px !important;
+    }
+
+    .home-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background-color: var(--ios-surface) !important;
+      border-radius: 16px !important;
+      padding: 18px 20px !important;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .home-avatar-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .home-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .home-profile-right {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .home-nickname {
+      font-size: 17px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+
+    .home-sign {
+      font-size: 13px !important;
+      color: var(--ios-text-3) !important;
+    }
+
+    .home-banner-card {
+      background-color: var(--ios-surface) !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .home-banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .home-banner-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px !important;
+    }
+
+    .home-banner-title {
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+      margin-bottom: 2px;
+    }
+
+    .home-banner-sub {
+      font-size: 12px !important;
+      color: var(--ios-text-3) !important;
+    }
+
+    .home-banner-btn {
+      padding: 7px 16px !important;
+      background-color: transparent !important;
+      border: 1px solid var(--ios-separator) !important;
+      border-radius: 8px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      color: var(--ios-text-1) !important;
+      cursor: pointer;
+      transition: all 0.2s ease !important;
+      flex-shrink: 0;
+    }
+
+    .home-banner-btn:active {
+      background-color: rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .home-section-title {
+      font-size: 20px !important;
+      font-weight: 700 !important;
+      color: var(--ios-text-1) !important;
+      letter-spacing: -0.4px;
+      margin-bottom: 14px;
+    }
+
+    .home-rec-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .home-rec-card {
+      background-color: var(--ios-surface) !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .home-rec-card:active {
+      transform: scale(0.97);
+    }
+
+    .home-rec-img-wrap {
+      width: 100%;
+      height: 140px;
+      background-color: var(--ios-bg) !important;
+      overflow: hidden;
+    }
+
+    .home-rec-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .home-rec-body {
+      padding: 12px 12px 14px !important;
+    }
+
+    .home-rec-title {
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .home-rec-tags {
+      font-size: 11px !important;
+      color: var(--ios-text-3) !important;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .home-rec-reason {
+      font-size: 11px !important;
+      color: var(--ios-text-3) !important;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2; /* Define the standard property for compatibility */
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .home-rec-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .home-rec-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 8px;
+      border: none;
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(0,0,0,0.04);
+      color: var(--ios-text-3);
+    }
+
+    .home-rec-btn:active {
+      transform: scale(0.95);
+    }
+
+    .home-rec-btn-like.active {
+      background: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+    }
+
+    .home-rec-btn-like.active svg {
+      fill: #ff3b30;
+    }
+
+    .home-rec-btn-dislike:active {
+      background: rgba(255, 149, 0, 0.1);
+      color: #ff9500;
+    }
+
+    .home-rec-btn-tryon {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+    }
+
+    .home-rec-btn-tryon:active {
+      background: rgba(0, 122, 255, 0.2);
+    }
+
+    .home-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px !important;
+    }
+
+    .home-empty-icon {
+      color: var(--ios-text-3) !important;
+      opacity: 0.3;
+      margin-bottom: 16px;
+    }
+
+    .home-empty-text {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: var(--ios-text-1) !important;
+      margin-bottom: 6px;
+    }
+
+    .home-empty-sub {
+      font-size: 13px !important;
+      color: var(--ios-text-3) !important;
+      text-align: center;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .home-empty-btn {
+      padding: 12px 28px !important;
+      background-color: var(--ios-active) !important;
+      border: none !important;
+      border-radius: 12px !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      color: #fff !important;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .home-empty-btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* === LOGIN & REGISTER PAGE === */
+    .login-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 32px 40px !important;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .login-logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .login-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      object-fit: cover;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+      margin-bottom: 16px;
+    }
+
+    .login-app-name {
+      font-size: 22px !important;
+      font-weight: 700 !important;
+      color: var(--ios-text-1) !important;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .login-app-tagline {
+      font-size: 13px !important;
+      color: var(--ios-text-3) !important;
+      letter-spacing: 0.3px;
+    }
+
+    .login-form-card {
+      width: 100%;
+      background-color: var(--ios-surface) !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+      margin-bottom: 16px;
+    }
+
+    .login-field-group {
+      padding: 0;
+    }
+
+    .login-field-item {
+      display: flex;
+      align-items: center;
+      padding: 15px 18px !important;
+      background-color: transparent;
+    }
+
+    .login-field-label {
+      font-size: 15px !important;
+      color: var(--ios-text-1) !important;
+      font-weight: 500;
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+
+    .login-field-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 15px !important;
+      color: var(--ios-text-1) !important;
+      caret-color: var(--ios-active);
+      padding: 0;
+    }
+
+    .login-field-input::placeholder {
+      color: var(--ios-text-3) !important;
+    }
+
+    .login-field-divider {
+      height: 0.5px;
+      background-color: var(--ios-separator) !important;
+      margin: 0 18px;
+    }
+
+    .login-field-item-code {
+      padding-right: 4px !important;
+    }
+
+    .login-code-btn {
+      font-size: 14px !important;
+      font-weight: 500;
+      color: var(--ios-active) !important;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 6px 8px;
+      flex-shrink: 0;
+      transition: opacity 0.2s ease;
+      border-left: 0.5px solid var(--ios-separator) !important;
+      padding-left: 14px !important;
+      margin-left: 4px;
+      letter-spacing: 0.2px;
+    }
+
+    .login-code-btn:active {
+      opacity: 0.5;
+    }
+
+    .login-remember {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px 6px !important;
+    }
+
+    .login-checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+    }
+
+    .login-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--ios-active);
+      cursor: pointer;
+    }
+
+    .login-checkbox-text {
+      font-size: 13px !important;
+      color: var(--ios-text-3) !important;
+    }
+
+    .login-toggle-wrap {
+      width: 100%;
+      margin-bottom: 24px;
+    }
+
+    .login-toggle-btn {
+      font-size: 13px !important;
+      font-weight: 500;
+      color: var(--ios-active) !important;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+      letter-spacing: 0.2px;
+    }
+
+    .login-btn-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .login-primary-btn {
+      width: 100%;
+      padding: 15px 0 !important;
+      background-color: var(--ios-active) !important;
+      border: none !important;
+      border-radius: 12px !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: #fff !important;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+      transition: all 0.2s ease !important;
+      letter-spacing: 0.3px;
+    }
+
+    .login-primary-btn:active {
+      transform: scale(0.98);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .login-secondary-btn {
+      width: 100%;
+      padding: 15px 0 !important;
+      background-color: transparent !important;
+      border: 1px solid var(--ios-separator) !important;
+      border-radius: 12px !important;
+      font-size: 16px !important;
+      font-weight: 500 !important;
+      color: var(--ios-text-1) !important;
+      cursor: pointer;
+      transition: all 0.2s ease !important;
+      letter-spacing: 0.3px;
+    }
+
+    .login-secondary-btn:active {
+      background-color: rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .login-agreement {
+      margin-top: 24px;
+      font-size: 11px !important;
+      color: var(--ios-text-3) !important;
+      text-align: center;
+      letter-spacing: 0.2px;
+      line-height: 1.5;
+    }
+  </style>
+
 </head>
 <body>
   <div id="app">
     <!-- 1. 启动页面 -->
     <div class="page splash active" id="splashPage">
-      <div class="skip-btn" @click="goToLogin">{{ skipText }}</div>
-      <!-- 图片放在文字上方，居中显示 -->
-      <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 20px;">
-        <img src="./wardrobe-icon.png" alt="智能衣橱启动图" class="splash-start-img" style="width: 200px; height: 200px; object-fit: contain;">
+      <div class="splash-skip" @click="goToLogin">{{ skipText }}</div>
+
+      <div class="splash-main">
+        <div class="splash-icon-wrap">
+          <svg width="88" height="88" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" class="splash-icon-svg">
+            <path d="M20.38 3.46L16 2a8.96 8.96 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.25 1.15l-1.3 3.08a2 2 0 0 0 1.34 2.65l1.64.48V20a2 2 0 0 0 2 2h7.9a2 2 0 0 0 2-2v-9.18l1.64-.48a2 2 0 0 0 1.34-2.65l-1.3-3.08a2 2 0 0 0-1.25-1.15z"/>
+          </svg>
+        </div>
+        <div class="splash-title">简衣橱</div>
+        <div class="splash-subtitle">智能穿搭衣橱</div>
       </div>
-      <div class="splash-logo">简衣橱</div>
-      <div class="text-gray-500 text-lg">智能穿搭衣橱</div>
+
+      <div class="splash-loader">
+        <div class="splash-dot"></div>
+        <div class="splash-dot"></div>
+        <div class="splash-dot"></div>
+      </div>
     </div>
 
     <!-- 2. 登录页面 -->
     <div class="page" id="loginPage">
-      <div class="top-nav">
-        <button class="van-button van-button--text" @click="goToSplash">
-          <i class="van-icon van-icon-arrow-left"></i>
-        </button>
-        <div class="top-nav-title">手机验证码登录</div>
-        <div class="w-8"></div>
-      </div>
-      
-        <div class="content">
-        <div class="flex justify-center mb-6">
-          <img src="https://picsum.photos/seed/wardrobe-login/100/100" alt="登录图标" class="w-20 h-20 rounded-full">
+      <div class="login-page">
+        <div class="login-logo-wrap">
+          <img src="https://picsum.photos/seed/wardrobe-login/100/100" alt="登录图标" class="login-logo">
+          <div class="login-app-name">简衣橱</div>
+          <div class="login-app-tagline">智能穿搭衣橱</div>
         </div>
-        <div class="van-cell-group border-0">
-          <div class="van-field">
-            <div class="van-field__label">+86</div>
-            <input type="tel" class="van-field__control" placeholder="请输入手机号码" v-model="phone">
+
+        <div class="login-form-card">
+          <div class="login-field-group">
+            <div class="login-field-item">
+              <div class="login-field-label">+86</div>
+              <input type="tel" class="login-field-input" placeholder="请输入手机号码" v-model="phone" maxlength="11">
+            </div>
+            <div class="login-field-divider"></div>
+            <div class="login-field-item login-field-item-code" v-if="!isPwdLogin">
+              <input type="text" class="login-field-input" placeholder="请输入验证码" v-model="code" maxlength="6">
+              <button class="login-code-btn" @click="getCode">获取验证码</button>
+            </div>
+            <div class="login-field-divider"></div>
+            <div class="login-field-item" v-if="isPwdLogin">
+              <input type="password" class="login-field-input" placeholder="请输入密码" v-model="password">
+            </div>
           </div>
-          <div class="van-field" v-if="isPwdLogin">
-            <input type="password" class="van-field__control" placeholder="请输入密码" v-model="password">
-          </div>
-          <div class="van-field" v-else>
-            <input type="text" class="van-field__control" placeholder="请输入验证码" v-model="code">
-            <button class="van-button van-button--text van-field__button" @click="getCode">获取验证码</button>
+
+          <div v-if="isPwdLogin" class="login-remember">
+            <label class="login-checkbox-wrap">
+              <input type="checkbox" v-model="rememberPhone" class="login-checkbox">
+              <span class="login-checkbox-text">记住账号</span>
+            </label>
+            <label class="login-checkbox-wrap">
+              <input type="checkbox" v-model="rememberPassword" class="login-checkbox">
+              <span class="login-checkbox-text">记住密码</span>
+            </label>
           </div>
         </div>
-        
-        <!-- 记住账号和记住密码选项（仅在密码登录模式下显示） -->
-        <div v-if="isPwdLogin" class="flex justify-between items-center my-4 px-2">
-          <label class="flex items-center text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" v-model="rememberPhone" class="mr-2" style="width: 16px; height: 16px;">
-            <span>记住账号</span>
-          </label>
-          <label class="flex items-center text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" v-model="rememberPassword" class="mr-2" style="width: 16px; height: 16px;">
-            <span>记住密码</span>
-          </label>
-        </div>
-        
-        <div class="flex justify-between my-6">
-          <button class="text-blue-500 text-sm" @click="toggleLoginType">
+
+        <div class="login-toggle-wrap">
+          <button class="login-toggle-btn" @click="toggleLoginType">
             {{ isPwdLogin ? '手机验证码登录' : '账号密码登录' }}
           </button>
         </div>
-        
-        <button class="van-button van-button--primary login-register-btn" @click="login">登录</button>
-        <button class="van-button van-button--default login-register-btn" @click="goToRegister">注册新用户</button>
-        <p class="text-center text-gray-400 text-xs mt-6">登录或注册代表您同意用户服务协议</p>
+
+        <div class="login-btn-wrap">
+          <button class="login-primary-btn" @click="login">登录</button>
+          <button class="login-secondary-btn" @click="goToRegister">注册新用户</button>
+        </div>
+
+        <div class="login-agreement">登录或注册代表您同意用户服务协议</div>
       </div>
     </div>
 
@@ -343,28 +1365,38 @@
         <div class="top-nav-title">注册</div>
         <div class="w-8"></div>
       </div>
-      
-      <div class="content">
-        <div class="flex justify-center mb-6">
-          <img src="https://picsum.photos/seed/wardrobe-register/100/100" alt="注册图标" class="w-20 h-20 rounded-full">
+
+      <div class="login-page">
+        <div class="login-logo-wrap">
+          <img src="https://picsum.photos/seed/wardrobe-register/100/100" alt="注册图标" class="login-logo">
+          <div class="login-app-name">简衣橱</div>
+          <div class="login-app-tagline">智能穿搭衣橱</div>
         </div>
-        <div class="van-cell-group border-0">
-          <div class="van-field">
-            <div class="van-field__label">+86</div>
-            <input type="tel" class="van-field__control" placeholder="请输入手机号码" v-model="regPhone">
-          </div>
-          <div class="van-field">
-            <input type="text" class="van-field__control" placeholder="请输入验证码" v-model="regCode">
-            <button class="van-button van-button--text van-field__button" @click="getRegCode">获取验证码</button>
-          </div>
-          <div class="van-field">
-            <input type="password" class="van-field__control" placeholder="请输入密码" v-model="regPassword">
+
+        <div class="login-form-card">
+          <div class="login-field-group">
+            <div class="login-field-item">
+              <div class="login-field-label">+86</div>
+              <input type="tel" class="login-field-input" placeholder="请输入手机号码" v-model="regPhone" maxlength="11">
+            </div>
+            <div class="login-field-divider"></div>
+            <div class="login-field-item login-field-item-code">
+              <input type="text" class="login-field-input" placeholder="请输入验证码" v-model="regCode" maxlength="6">
+              <button class="login-code-btn" @click="getRegCode">获取验证码</button>
+            </div>
+            <div class="login-field-divider"></div>
+            <div class="login-field-item">
+              <input type="password" class="login-field-input" placeholder="请输入密码（8位以上，含字母和数字）" v-model="regPassword">
+            </div>
           </div>
         </div>
-        
-        <button class="van-button van-button--primary login-register-btn mt-8" @click="register">立即注册</button>
-        <button class="van-button van-button--default login-register-btn" @click="goToLogin">已有账号，去登录</button>
-        <p class="text-center text-gray-400 text-xs mt-6">登录或注册代表您同意用户服务协议</p>
+
+        <div class="login-btn-wrap">
+          <button class="login-primary-btn" @click="register">立即注册</button>
+          <button class="login-secondary-btn" @click="goToLogin">已有账号，去登录</button>
+        </div>
+
+        <div class="login-agreement">登录或注册代表您同意用户服务协议</div>
       </div>
     </div>
 
@@ -375,82 +1407,99 @@
         <div class="top-nav-title">推荐</div>
         <div class="w-8"></div>
       </div>
-      
-      <div class="content">
-        <div class="user-info">
-          <img :src="userAvatar" alt="用户头像" class="user-avatar">
-          <div class="user-name">{{ nickname }}</div>
+
+      <div class="home-content">
+        <div class="home-profile-card">
+          <div class="home-avatar-wrap">
+            <img :src="userAvatar" alt="用户头像" class="home-avatar-img">
+          </div>
+          <div class="home-profile-right">
+            <div class="home-nickname">{{ nickname }}</div>
+            <div class="home-sign">重塑日常，表达真我~</div>
+          </div>
         </div>
-        <p class="text-gray-500 mb-6">重塑日常，表达真我~</p>
-        
-        <div class="mb-4">
-  <div class="relative">
-    <!-- 使用 van-swipe 组件实现轮播 -->
-    <van-swipe class="img-container h-48 cover" :autoplay="3000" indicator-color="white">
-      <!-- 循环渲染多张随机图片 -->
-      <van-swipe-item v-for="img in 5" :key="img">
-        <img 
-          :src="`https://picsum.photos/seed/outfit-${img}/800/400`" 
-          alt="今日穿搭推荐" 
-          class="w-full h-full object-cover"
-        >
-      </van-swipe-item>
-    </van-swipe>
-    <div class="absolute top-3 left-3 text-white">
-      <h2 class="text-lg font-bold">今日穿搭定制</h2>
-      <p class="text-sm">专属场景风格</p>
-    </div>
-    <button class="absolute bottom-3 left-3 van-button van-button--primary" @click="goToSmartWardrobe" style="color: black;">详细</button>
-      </div>
-          
-          <!-- 真实推荐数据展示 -->
-          <div class="grid grid-cols-2 gap-4" v-if="dailyRecommendations.length > 0">
-            <div 
-              v-for="(rec, index) in dailyRecommendations" 
+
+        <div class="home-banner-card">
+          <van-swipe :autoplay="3000" indicator-color="rgba(255,255,255,0.7)" :height="180">
+            <van-swipe-item v-for="img in 5" :key="img">
+              <img :src="`https://picsum.photos/seed/outfit-${img}/800/400`" alt="今日穿搭推荐" class="home-banner-img">
+            </van-swipe-item>
+          </van-swipe>
+          <div class="home-banner-footer">
+            <div class="home-banner-text">
+              <div class="home-banner-title">今日穿搭定制</div>
+              <div class="home-banner-sub">专属场景风格</div>
+            </div>
+            <button class="home-banner-btn" @click="goToSmartWardrobe">查看详情</button>
+          </div>
+        </div>
+
+        <div v-if="dailyRecommendations.length > 0">
+          <div class="home-section-title">为你推荐</div>
+          <div class="home-rec-grid">
+            <div
+              v-for="(rec, index) in dailyRecommendations"
               :key="rec.id || index"
-              class="bg-gray-100 rounded-lg p-3 relative clothes-item"
+              class="home-rec-card"
               @click="goToRecommendationDetail(rec)"
-              style="cursor: pointer;"
+              v-show="!rec._hidden"
             >
-              <!-- 显示推荐中的第一件衣物作为封面 -->
-              <div class="img-container" v-if="rec.garments && rec.garments.length > 0">
-                <img :src="getImageUrl(rec.garments[0].image_url)" :alt="rec.description || '推荐穿搭'">
+              <div class="home-rec-img-wrap" v-if="rec.garments && rec.garments.length > 0">
+                <img :src="getImageUrl(rec.garments[0].image_url)" :alt="rec.description || '推荐穿搭'" class="home-rec-img">
               </div>
-              <div class="text-center">
-                <div class="text-sm font-medium">{{ rec.description || '推荐穿搭' }}</div>
-                <div class="text-xs text-gray-500 mt-1" v-if="rec.garments && rec.garments.length > 0">
-                  {{ rec.garments.map(g => g.name).join(' + ') }}
+              <div class="home-rec-body">
+                <div class="home-rec-title">{{ rec.description || '推荐穿搭' }}</div>
+                <div class="home-rec-tags text-gray-500" v-if="rec.garments && rec.garments.length > 0">
+                  {{ rec.garments.map(g => g.name).join(' · ') }}
                 </div>
-                <div class="text-xs text-blue-500 mt-2 px-2 py-1 bg-blue-50 rounded" style="text-align: left; line-height: 1.4;">
-                  <strong>推荐理由：</strong>{{ rec.reason || '根据您的衣橱精心搭配' }}
+                <div class="home-rec-reason" v-if="rec.reason">
+                  {{ rec.reason }}
+                </div>
+                <div class="home-rec-actions" @click.stop>
+                  <button class="home-rec-btn home-rec-btn-like" :class="{ active: rec._liked }" @click="toggleLikeRec(rec)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    喜欢
+                  </button>
+                  <button class="home-rec-btn home-rec-btn-dislike" @click="dislikeRec(rec)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    不感兴趣
+                  </button>
+                  <button class="home-rec-btn home-rec-btn-tryon" @click="tryRecOn(rec)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    试穿
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-          <!-- 如果没有推荐数据，显示提示 -->
-          <div v-else class="text-center text-gray-500 py-10">
-            <p>还没有推荐记录，去"智能衣橱"生成一组推荐试试吧~</p>
-            <button class="van-button van-button--primary mt-4" @click="goToSmartWardrobe">去生成推荐</button>
+        </div>
+
+        <div v-else class="home-empty">
+          <div class="home-empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46L16 2a8.96 8.96 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.25 1.15l-1.3 3.08a2 2 0 0 0 1.34 2.65l1.64.48V20a2 2 0 0 0 2 2h7.9a2 2 0 0 0 2-2v-9.18l1.64-.48a2 2 0 0 0 1.34-2.65l-1.3-3.08a2 2 0 0 0-1.25-1.15z"></path></svg>
           </div>
+          <div class="home-empty-text">还没有推荐记录</div>
+          <div class="home-empty-sub">去"智能衣橱"生成一组推荐试试吧~</div>
+          <button class="home-empty-btn" @click="goToSmartWardrobe">去生成推荐</button>
         </div>
       </div>
 
       <div class="tabbar">
         <div class="tabbar-item active" @click="showPage('homePage')">
-          <i class="van-icon van-icon-home-o text-lg"></i>
-          <span>推荐</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+        <span>推荐</span>
         </div>
         <div class="tabbar-item" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-clothes text-lg"></i>
-          <span>衣橱</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20.38 3.46L16 2a8.96 8.96 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.25 1.15l-1.3 3.08a2 2 0 0 0 1.34 2.65l1.64.48V20a2 2 0 0 0 2 2h7.9a2 2 0 0 0 2-2v-9.18l1.64-.48a2 2 0 0 0 1.34-2.65l-1.3-3.08a2 2 0 0 0-1.25-1.15z"></path></svg>
+        <span>衣橱</span>
         </div>
         <div class="tabbar-item" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-clock-o text-lg"></i>
-          <span>历史</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>历史</span>
         </div>
         <div class="tabbar-item" @click="showPage('minePage')">
-          <i class="van-icon van-icon-user-o text-lg"></i>
-          <span>我的</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>我的</span>
         </div>
       </div>
     </div>
@@ -460,13 +1509,13 @@
       <div class="top-nav">
         <div class="w-8"></div>
         <div class="top-nav-title" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <i class="van-icon van-icon-clothes text-lg"></i>
+          <i class="custom-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46L16 2a8.96 8.96 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.25 1.15l-1.3 3.08a2 2 0 0 0 1.34 2.65l1.64.48V20a2 2 0 0 0 2 2h7.9a2 2 0 0 0 2-2v-9.18l1.64-.48a2 2 0 0 0 1.34-2.65l-1.3-3.08a2 2 0 0 0-1.25-1.15z"></path></svg></i>
           <span>衣橱</span>
         </div>
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="user-info">
           <img :src="userAvatar" alt="用户头像" class="user-avatar">
           <div class="user-name">{{ nickname }}</div>
@@ -494,7 +1543,7 @@
         
         <van-checkbox-group v-model="selectedClothes" v-if="isDeleteMode && filteredClothes.length > 0">
           <div class="grid grid-cols-2 gap-4">
-            <div class="bg-gray-100 rounded-lg p-3 clothes-item relative" v-for="item in filteredClothes" :key="item.id">
+            <div class="p-3 clothes-item relative" v-for="item in filteredClothes" :key="item.id">
               <van-checkbox class="clothes-checkbox" :name="item.id"></van-checkbox>
               <div class="img-container" @click="goToClothesDetail(item.id)" style="height: 150px;">
                 <img :src="getImageUrl(item.imgUrl)" :alt="item.name">
@@ -507,7 +1556,7 @@
           </div>
         </van-checkbox-group>
         <div class="grid grid-cols-2 gap-4" v-else-if="filteredClothes.length > 0">
-          <div class="bg-gray-100 rounded-lg p-3 clothes-item relative" v-for="item in filteredClothes" :key="item.id">
+          <div class="p-3 clothes-item relative" v-for="item in filteredClothes" :key="item.id">
             <div class="img-container" @click="goToClothesDetail(item.id)" style="height: 150px;">
               <img :src="getImageUrl(item.imgUrl)" :alt="item.name">
             </div>
@@ -540,20 +1589,20 @@
 
       <div class="tabbar">
         <div class="tabbar-item" @click="showPage('homePage')">
-          <i class="van-icon van-icon-home-o text-lg"></i>
-          <span>推荐</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+        <span>推荐</span>
         </div>
         <div class="tabbar-item active" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-clothes text-lg"></i>
-          <span>衣橱</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20.38 3.46L16 2a8.96 8.96 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.25 1.15l-1.3 3.08a2 2 0 0 0 1.34 2.65l1.64.48V20a2 2 0 0 0 2 2h7.9a2 2 0 0 0 2-2v-9.18l1.64-.48a2 2 0 0 0 1.34-2.65l-1.3-3.08a2 2 0 0 0-1.25-1.15z"></path></svg>
+        <span>衣橱</span>
         </div>
         <div class="tabbar-item" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-clock-o  text-lg"></i>
-          <span>历史</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>历史</span>
         </div>
         <div class="tabbar-item" @click="showPage('minePage')">
-          <i class="van-icon van-icon-user-o text-lg"></i>
-          <span>我的</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>我的</span>
         </div>
       </div>
     </div>
@@ -568,7 +1617,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="mb-6">
           <button class="van-button van-button--primary w-full" @click="generateOutfit">生成穿搭</button>
           <p class="text-xs text-gray-500 text-center mt-2">提示：至少选择一个标签再生成穿搭</p>
@@ -687,7 +1736,7 @@
         <button class="van-button van-button--text" @click="confirmSaveOutfit">确认</button>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="img-container mb-6">
           <img v-if="generatedOutfit" :src="generatedOutfit.imgUrl" alt="穿搭预览">
           <img v-else src="https://picsum.photos/seed/default-outfit/300/150" alt="穿搭预览">
@@ -727,7 +1776,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="user-info">
           <img :src="userAvatar" alt="用户头像" class="user-avatar">
           <div class="user-name">{{ nickname }}</div>
@@ -758,7 +1807,7 @@
             <div
               v-for="record in tryonHistoryList"
               :key="record.id"
-              class="bg-gray-100 rounded-lg p-3 clothes-item"
+              class="p-3 clothes-item"
               @click="goToTryonDetail(record)"
               style="cursor: pointer;"
             >
@@ -782,7 +1831,7 @@
             <div
               v-for="record in recommendationHistoryList"
               :key="record.id"
-              class="bg-gray-100 rounded-lg p-3 clothes-item"
+              class="p-3 clothes-item"
             >
               <div class="flex justify-between text-xs text-gray-400 mb-2">
                 <span>推荐 #{{ record.id }}</span>
@@ -816,20 +1865,20 @@
 
       <div class="tabbar">
         <div class="tabbar-item" @click="showPage('homePage')">
-          <i class="van-icon van-icon-home-o text-lg"></i>
-          <span>推荐</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+        <span>推荐</span>
         </div>
         <div class="tabbar-item" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-clothes text-lg"></i>
-          <span>衣橱</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20.38 3.46L16 2a8.96 8.96 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.25 1.15l-1.3 3.08a2 2 0 0 0 1.34 2.65l1.64.48V20a2 2 0 0 0 2 2h7.9a2 2 0 0 0 2-2v-9.18l1.64-.48a2 2 0 0 0 1.34-2.65l-1.3-3.08a2 2 0 0 0-1.25-1.15z"></path></svg>
+        <span>衣橱</span>
         </div>
         <div class="tabbar-item active" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-clock-o text-lg"></i>
-          <span>历史</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>历史</span>
         </div>
         <div class="tabbar-item" @click="showPage('minePage')">
-          <i class="van-icon van-icon-user-o text-lg"></i>
-          <span>我的</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>我的</span>
         </div>
       </div>
     </div>
@@ -844,7 +1893,7 @@
         <button class="van-button van-button--text" @click="editClothes">编辑</button>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="bg-gray-100 rounded-lg p-4 mb-6">
           <div class="img-container mb-4">
             <img v-if="currentClothes" :src="getImageUrl(currentClothes.imgUrl)" :alt="currentClothes.name">
@@ -892,7 +1941,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="mb-6">
           <h3 class="text-lg font-medium mb-4">选择衣物</h3>
           <div class="bg-gray-100 rounded-lg p-4" v-if="currentTryonGarment">
@@ -959,7 +2008,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content" v-if="currentRecommendation">
+      <div class="content" style="padding: 20px;" v-if="currentRecommendation">
         <div class="text-xs text-gray-400 mb-4 text-center" v-if="currentRecommendation.created_at">
           {{ formatRecordTime(currentRecommendation.created_at) }}
         </div>
@@ -987,7 +2036,7 @@
             <div 
               v-for="garment in currentRecommendation.garments" 
               :key="garment.id"
-              class="bg-gray-100 rounded-lg p-4 clothes-item"
+              class="p-4 clothes-item"
               @click="goToClothesDetail(garment.id)"
               style="cursor: pointer;"
             >
@@ -1030,7 +2079,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content" v-if="currentTryonRecord">
+      <div class="content" style="padding: 20px;" v-if="currentTryonRecord">
         <div class="text-xs text-gray-400 mb-4 text-center">
           {{ formatRecordTime(currentTryonRecord.created_at) }}
         </div>
@@ -1078,62 +2127,74 @@
         <div class="top-nav-title">我的</div>
         <div class="w-8"></div>
       </div>
-      
-      <div class="content">
-        <!-- 重构用户信息区域 -->
-        <div class="mine-user-info-container">
-          <div class="cursor-pointer" @click="triggerAvatarUpload">
-            <img :src="userAvatar" alt="个人头像" class="mine-user-avatar">
+
+      <div class="mine-content">
+        <div class="mine-profile-card">
+          <div class="mine-avatar-wrap" @click="triggerAvatarUpload">
+            <img :src="userAvatar" alt="个人头像" class="mine-avatar-img">
           </div>
-          <div class="mine-user-details">
-            <div class="mine-user-name">{{ nickname }}</div>
-            <div class="mine-user-signature">重塑日常，表达真我~</div>
-            <div class="mine-user-id">ID: 7830237845</div>
-          </div>
-        </div>
-        
-        <!-- 功能按钮区域 -->
-        <div class="space-y-0">
-          <button class="mine-function-btn" @click="goToUserInfo">
-            <i class="van-icon van-icon-user-o"></i>个人中心
-          </button>
-          <button class="mine-function-btn" @click="goToCollection">
-            <i class="van-icon van-icon-like-o"></i>我的收藏
-          </button>
-          <button class="mine-function-btn" @click="goToSettings">
-            <i class="van-icon van-icon-settings-o"></i>设置
-          </button>
-          <button class="mine-function-btn mt-0" @click="goToAbout">
-            <i class="van-icon van-icon-info-o"></i>关于我们
-          </button>
-        </div>
-    
-        <!-- 退出登录按钮（移到页面底部居中 + 图片式边框） -->
-        <div class="flex justify-center mt-20">
-          <div class="border-2 border-dashed border-gray-300 rounded-lg p" style="width: fit-content;">
-            <button class="mine-function-btn text-red-500 px-8 py-2 text-center border-0" @click="logout">
-              <i class="van-icon van-icon-power-o"></i>退出登录
-            </button>
+          <div class="mine-profile-info">
+            <div class="mine-profile-name">{{ nickname }}</div>
+            <div class="mine-profile-sign">重塑日常，表达真我~</div>
+            <div class="mine-profile-id">ID {{ userId }}</div>
           </div>
         </div>
+
+        <div class="mine-group-card">
+          <button class="mine-list-item" @click="goToUserInfo">
+            <div class="mine-list-left">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              <span>个人中心</span>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mine-chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          <div class="mine-divider"></div>
+          <button class="mine-list-item" @click="goToCollection">
+            <div class="mine-list-left">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              <span>我的收藏</span>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mine-chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          <div class="mine-divider"></div>
+          <button class="mine-list-item" @click="goToSettings">
+            <div class="mine-list-left">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <span>设置</span>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mine-chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          <div class="mine-divider"></div>
+          <button class="mine-list-item mine-list-item-last" @click="goToAbout">
+            <div class="mine-list-left">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <span>关于我们</span>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mine-chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+
+        <button class="mine-logout-btn" @click="logout">
+          退出登录
+        </button>
       </div>
-    
+
       <div class="tabbar">
         <div class="tabbar-item" @click="showPage('homePage')">
-          <i class="van-icon van-icon-home-o text-lg"></i>
-          <span>推荐</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+        <span>推荐</span>
         </div>
         <div class="tabbar-item" @click="showPage('wardrobePage')">
-          <i class="van-icon van-icon-box-o text-lg"></i>
-          <span>衣橱</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20.38 3.46L16 2a8.96 8.96 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.25 1.15l-1.3 3.08a2 2 0 0 0 1.34 2.65l1.64.48V20a2 2 0 0 0 2 2h7.9a2 2 0 0 0 2-2v-9.18l1.64-.48a2 2 0 0 0 1.34-2.65l-1.3-3.08a2 2 0 0 0-1.25-1.15z"></path></svg>
+        <span>衣橱</span>
         </div>
         <div class="tabbar-item" @click="showPage('historyPage')">
-          <i class="van-icon van-icon-history-o text-lg"></i>
-          <span>历史</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>历史</span>
         </div>
         <div class="tabbar-item active" @click="showPage('minePage')">
-          <i class="van-icon van-icon-user-o text-lg"></i>
-          <span>我的</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>我的</span>
         </div>
       </div>
     </div>
@@ -1148,7 +2209,7 @@
         <button class="van-button van-button--text" @click="saveUserInfo">保存</button>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="flex flex-col items-center mb-6">
           <div class="w-20 h-20 rounded-full bg-gray-200 mb-3 overflow-hidden" @click="triggerAvatarUpload">
             <img :src="userAvatar" alt="个人头像" class="w-full h-full object-cover">
@@ -1177,9 +2238,9 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="grid grid-cols-2 gap-4" v-if="collectedClothes.length > 0">
-          <div class="bg-gray-100 rounded-lg p-3 clothes-item" @click="goToClothesDetail(item.id)" v-for="item in collectedClothes" :key="item.id">
+          <div class="p-3 clothes-item" @click="goToClothesDetail(item.id)" v-for="item in collectedClothes" :key="item.id">
             <div class="img-container">
               <img :src="getImageUrl(item.imgUrl)" :alt="item.name">
             </div>
@@ -1206,13 +2267,13 @@
           <i class="van-icon van-icon-arrow-left"></i>
         </button>
         <div class="top-nav-title" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <i class="van-icon van-icon-setting-o text-lg"></i>
+          <i class="van-icon van-icon-setting-o"></i>
           <span>设置</span>
         </div>
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="space-y-2">
           <button class="van-button van-button--default w-full justify-start" @click="goToNotification">
             <i class="van-icon van-icon-bell-o mr-2"></i>通知
@@ -1240,7 +2301,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="space-y-4">
           <div class="van-cell van-cell--switch">
             <div class="van-cell__title">消息通知</div>
@@ -1274,7 +2335,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="space-y-3">
           <button class="van-button van-button--primary w-full" @click="setFont('black')">黑体</button>
           <button class="van-button van-button--default w-full" @click="setFont('song')">宋体</button>
@@ -1293,7 +2354,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="space-y-3">
           <button class="van-button van-button--primary w-full" @click="setLanguage('zh-CN')">简体中文</button>
           <button class="van-button van-button--default w-full" @click="setLanguage('zh-TW')">繁体中文</button>
@@ -1312,7 +2373,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="van-cell-group border-0 space-y-4">
           <div class="van-field">
             <input type="password" class="van-field__control" placeholder="请输入原密码" v-model="oldPwd">
@@ -1339,7 +2400,7 @@
         <div class="w-8"></div>
       </div>
       
-      <div class="content">
+      <div class="content" style="padding: 20px;">
         <div class="flex flex-col items-center mb-6">
           <img src="https://picsum.photos/seed/about/100/100" alt="logo" class="w-20 h-20 rounded-full mb-4">
           <h2 class="text-xl font-bold">智能衣橱APP</h2>
@@ -1364,7 +2425,7 @@
     <div class="w-8"></div>
   </div>
   
-  <div class="content">
+  <div class="content" style="padding: 20px;">
     <!-- 图片选择区域 -->
     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-6">
       <button class="van-button van-button--default mr-4" @click="selectFromAlbum">
@@ -1644,6 +2705,7 @@
           vibrateEnabled: false,
           showContentEnabled: true,
           nickname: '刀刀',
+          userId: '7830237845',
           userAvatar: 'https://picsum.photos/seed/avatar/100/100',
           
           oldPwd: '',
@@ -2148,6 +3210,41 @@
         
         goToSmartWardrobe() {
           this.showPage('smartWardrobePage');
+        },
+
+        toggleLikeRec(rec) {
+          rec._liked = !rec._liked;
+          if (window.api && window.api.feedbackAPI) {
+            window.api.feedbackAPI.postFeedback(rec.id, rec._liked ? 'like' : 'unlike');
+          }
+        },
+
+        dislikeRec(rec) {
+          rec._hidden = true;
+          if (window.api && window.api.feedbackAPI) {
+            window.api.feedbackAPI.postFeedback(rec.id, 'dislike');
+          }
+        },
+
+        tryRecOn(rec) {
+          if (rec.garments && rec.garments.length > 0) {
+            const garment = this.clothesList.find(item => item.id === rec.garments[0].id);
+            if (garment) {
+              this.currentTryonGarment = garment;
+            } else {
+              this.currentTryonGarment = rec.garments[0];
+            }
+          } else {
+            this.currentTryonGarment = null;
+          }
+          this.tryonUserPhoto = '';
+          this.tryonUserPhotoFile = null;
+          this.tryonResult = null;
+          this.isGeneratingTryon = false;
+          this.showPage('tryonPage');
+          if (window.api && window.api.feedbackAPI) {
+            window.api.feedbackAPI.postFeedback(rec.id, 'tryon');
+          }
         },
         
         goToSavePage() {
