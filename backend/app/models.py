@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, JSON, Float
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -21,7 +21,6 @@ class User(Base):
     garments = relationship("Garment", back_populates="owner", cascade="all, delete-orphan")
     tryon_records = relationship("TryonRecord", back_populates="owner", cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="owner", cascade="all, delete-orphan")
-    feedbacks = relationship("Feedback", back_populates="owner", cascade="all, delete-orphan")
 
 class Garment(Base):
     """衣物模型"""
@@ -35,7 +34,6 @@ class Garment(Base):
     image_url = Column(String, nullable=False)
     tags = Column(JSON, default=list)  # 标签列表：["休闲", "红色", "夏季"]
     season = Column(String, nullable=True)  # 春/夏/秋/冬
-    reason = Column(String, nullable=True)  # 标签识别理由：为什么这样识别这个衣物
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
@@ -43,7 +41,6 @@ class Garment(Base):
     # 关联关系
     owner = relationship("User", back_populates="garments")
     tryon_records = relationship("TryonRecord", back_populates="garment")
-    feedbacks = relationship("Feedback", back_populates="garment", cascade="all, delete-orphan")
 
 class TryonRecord(Base):
     """虚拟试穿记录"""
@@ -86,6 +83,7 @@ class RecommendationRecord(Base):
     garments = Column(JSON, default=list)     # 推荐时的衣物详细信息快照
     description = Column(String, nullable=False)  # 穿搭描述文案
     reason = Column(String, nullable=False)       # 推荐理由
+    confidence = Column(Float, nullable=True)      # 推荐置信度（0.0 - 1.0）
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # 关联关系
@@ -98,14 +96,9 @@ class Feedback(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    garment_id = Column(Integer, ForeignKey("garments.id"), nullable=True)  # 关联衣物（可选）
-    tryon_record_id = Column(Integer, ForeignKey("tryon_records.id"), nullable=True)  # 关联试穿记录（可选）
-    feedback_type = Column(String, nullable=False)  # 反馈类型：tag_accuracy/recommendation_quality/general
-    feedback_text = Column(String, nullable=False)  # 反馈内容
-    rating = Column(Integer, nullable=True)  # 评分：1-5
+    outfit_id = Column(Integer, nullable=True)
+    action = Column(String, nullable=False)  # like|dislike|skip|collect|purchase
+    meta = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # 关联关系
+
     owner = relationship("User")
-    garment = relationship("Garment", back_populates="feedbacks")
-    tryon_record = relationship("TryonRecord")

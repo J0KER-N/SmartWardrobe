@@ -1,9 +1,15 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
+
+from .preference_learning import score_outfit_preference
 
 logger = logging.getLogger(__name__)
 
-def generate_outfit_recommendations(garments: List, weather: Dict) -> List[Dict]:
+def generate_outfit_recommendations(
+    garments: List,
+    weather: Dict,
+    preference_profile: Optional[Dict] = None,
+) -> List[Dict]:
     """生成穿搭推荐"""
     temp = weather.get("temp_c", 20)
     condition = weather.get("condition", "晴")
@@ -99,5 +105,15 @@ def generate_outfit_recommendations(garments: List, weather: Dict) -> List[Dict]
                 "garments": [g["garment"] for g in selected],
                 "reason": "基于你的衣橱推荐的搭配"
             })
+
+    # 结合用户偏好对候选进行轻量重排，便于后续反馈闭环使用
+    if preference_profile and recommendations:
+        recommendations.sort(
+            key=lambda candidate: score_outfit_preference(
+                candidate.get("garments", []),
+                preference_profile,
+            ),
+            reverse=True,
+        )
     
     return recommendations
