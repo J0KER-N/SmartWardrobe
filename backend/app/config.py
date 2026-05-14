@@ -28,8 +28,11 @@ class Settings(BaseModel):
     # 时钟偏差（秒），用于在 JWT 验证时允许少量时间同步误差
     jwt_clock_skew_seconds: int = int(os.getenv("JWT_CLOCK_SKEW_SECONDS", 60))
     
-    # CORS配置
-    frontend_origin: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:8080")
+    # CORS配置 — 默认同时允许 localhost 与 127.0.0.1（方便本地开发）
+    frontend_origin: str = os.getenv(
+        "FRONTEND_ORIGIN",
+        "http://localhost:8080,http://127.0.0.1:8080",
+    )
     
     # AI服务配置
     leffa_endpoint: Optional[str] = os.getenv("LEFFA_ENDPOINT")  # 保留用于兼容性
@@ -41,6 +44,16 @@ class Settings(BaseModel):
     # 魔搭模型配置（国内可用）
     modelscope_model: Optional[str] = os.getenv("MODELSCOPE_MODEL")  # 魔搭模型ID，例如：damo/cv_unet_virtual-try-on-idm-vton
     modelscope_api_key: Optional[str] = os.getenv("MODELSCOPE_API_KEY")  # 魔搭 API Key
+    # KM 可美 token 网关（新韩 xinhankr）— 虚拟试穿走 OpenAI 协议 POST /v1/images/generations
+    kemi_gateway_base_url: str = os.getenv("KEMI_GATEWAY_BASE_URL", "https://token.xinhankr.com").rstrip("/")
+    kemi_gateway_api_key: Optional[str] = os.getenv("KEMI_GATEWAY_API_KEY") or os.getenv("XINHANKR_API_KEY")
+    kemi_tryon_image_model: str = os.getenv("KEMI_TRYON_IMAGE_MODEL", "")
+    kemi_tryon_prompt: str = os.getenv(
+        "KEMI_TRYON_PROMPT",
+        "虚拟试衣：将第一张参考图中的人物穿上第二张参考图展示的服装，保持体态自然、光影一致，高清写实。",
+    )
+    kemi_tryon_poll_interval_sec: float = float(os.getenv("KEMI_TRYON_POLL_INTERVAL_SEC", "2.0"))
+    kemi_tryon_poll_timeout_sec: int = int(os.getenv("KEMI_TRYON_POLL_TIMEOUT_SEC", "300"))
     fashionclip_endpoint: Optional[str] = os.getenv("FASHIONCLIP_ENDPOINT")
     baichuan_api_key: Optional[str] = os.getenv("BAICHUAN_API_KEY")
     baichuan_endpoint: str = os.getenv("BAICHUAN_ENDPOINT", "https://api.baichuan-ai.com/v1/chat/completions")
@@ -51,7 +64,7 @@ class Settings(BaseModel):
     object_storage_type: str = os.getenv("OBJECT_STORAGE_TYPE", "local")
     image_storage_path: str = os.getenv("IMAGE_STORAGE_PATH", "./uploads")
     image_max_size: int = int(os.getenv("IMAGE_MAX_SIZE", 5242880))  # 5MB（普通图片）
-    tryon_image_max_size: int = int(os.getenv("TRYON_IMAGE_MAX_SIZE", 20971520))  # 20MB（试衣用户照片，符合Leffa标准）
+    tryon_image_max_size: int = int(os.getenv("TRYON_IMAGE_MAX_SIZE", 20971520))  # 20MB（试衣用户照片）
     image_quality: int = int(os.getenv("IMAGE_QUALITY", 85))
     
     # 天气服务配置

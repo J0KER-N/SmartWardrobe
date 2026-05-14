@@ -1,8 +1,8 @@
 // API基础配置
 // 在浏览器环境中不能使用 process.env，直接使用默认值
 // 如果需要修改，可以直接改这里的值，或者通过 window.API_BASE_URL 覆盖
-// 注意：当前后端 FastAPI 运行在 8001 端口
-const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || 'http://127.0.0.1:8001';
+// 注意：当前后端 FastAPI 运行在 8000 端口
+const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || 'http://127.0.0.1:8000';
 
 // Token管理
 const TOKEN_KEY = 'smart_wardrobe_access_token';
@@ -256,12 +256,6 @@ const api = {
                 method: 'DELETE',
             });
         },
-        // 保存试穿记录
-        saveTryonRecord: async (id) => {
-            return request(`/records/save/${id}`, {
-                method: 'POST',
-            });
-        },
     },
     
     // 个人中心
@@ -311,19 +305,6 @@ const api = {
             });
             // 实际接口调用：
             // return request(`/weather?city=${encodeURIComponent(city)}`);
-        },
-    },
-    
-    // 推荐反馈
-    feedbackAPI: {
-        postFeedback: async (recommendationId, action) => {
-            return request('/recommendations/feedback', {
-                method: 'POST',
-                body: JSON.stringify({
-                    recommendation_id: recommendationId,
-                    action: action,  // 'like' | 'unlike' | 'dislike' | 'tryon'
-                }),
-            });
         },
     },
 };

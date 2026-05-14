@@ -2,7 +2,7 @@ import httpx
 import logging
 import os
 import time
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 import base64
 
@@ -191,12 +191,231 @@ def _sync_post_json(
         raise last_error
     raise AIClientError("请求失败，未知错误")
 
-# ------------------------------ 虚拟试穿（仅使用自建云端 Leffa 服务） ------------------------------
+# ------------------------------ 虚拟试穿（KM 可美 token 网关，OpenAI 协议生图） ------------------------------
+def _tryon_resolve_public_image_url(url: str) -> str:
+    """将相对路径转为可下载的绝对 URL（供本机下载后转 data URI 或传给公网网关）。"""
+    api_base_url = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+    if url.startswith("http"):
+        return url
+    if url.startswith("/"):
+        return f"{api_base_url}{url}"
+    return f"{api_base_url}/{url}"
+
+
+def _tryon_url_is_likely_non_public(url: str) -> bool:
+    u = url.lower()
+    if u.startswith("data:"):
+        return False
+    return (
+        "127.0.0.1" in u
+        or "localhost" in u
+        or u.startswith("http://192.168.")
+        or u.startswith("http://10.")
+        or u.startswith("https://192.168.")
+        or u.startswith("https://10.")
+    )
+
+
+def _tryon_download_as_data_uri(client: httpx.Client, url: str) -> str:
+    r = client.get(url, timeout=90.0)
+    r.raise_for_status()
+    raw = r.content
+    ctype = (r.headers.get("content-type") or "image/jpeg").split(";")[0].strip()
+    if ctype not in ("image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"):
+        ctype = "image/jpeg"
+    b64 = base64.b64encode(raw).decode("ascii")
+    return f"data:{ctype};base64,{b64}"
+
+
+def _kemi_prepare_reference_image_urls(user_photo_url: str, garment_image_url: str) -> List[str]:
+    """为人像、衣物各生成一条网关可用的参考地址；内网 URL 会下载后改为 data URI。"""
+    resolved = [
+        _tryon_resolve_public_image_url(user_photo_url),
+        _tryon_resolve_public_image_url(garment_image_url),
+    ]
+    out: List[str] = []
+    with httpx.Client(timeout=120.0, trust_env=False) as client:
+        for u in resolved:
+            if _tryon_url_is_likely_non_public(u):
+                logger.info("[KM] 参考图为内网地址，下载并封装为 data URI 以便网关使用")
+                out.append(_tryon_download_as_data_uri(client, u))
+            else:
+                out.append(u)
+    return out
+
+
+def _openai_style_image_data_to_bytes(
+    client: httpx.Client,
+    auth_headers: Dict[str, str],
+    data_list: List[dict],
+) -> Optional[bytes]:
+    if not data_list or not isinstance(data_list[0], dict):
+        return None
+    first = data_list[0]
+    b64 = first.get("b64_json")
+    if isinstance(b64, str) and b64.strip():
+        return base64.b64decode(b64)
+    url = first.get("url")
+    if isinstance(url, str) and url.startswith("http"):
+        ir = client.get(url, timeout=120.0)
+        ir.raise_for_status()
+        return ir.content
+    return None
+
+
+def _deep_find_openai_image_data_list(obj: Any) -> Optional[List[dict]]:
+    """在嵌套 JSON 中寻找 OpenAI 式 data: [{url|b64_json}, ...]。"""
+    if isinstance(obj, dict):
+        data = obj.get("data")
+        if isinstance(data, list) and data and all(isinstance(x, dict) for x in data):
+            if any("url" in x or "b64_json" in x for x in data):
+                return data  # type: ignore[return-value]
+        for v in obj.values():
+            found = _deep_find_openai_image_data_list(v)
+            if found is not None:
+                return found
+    elif isinstance(obj, list):
+        for item in obj:
+            found = _deep_find_openai_image_data_list(item)
+            if found is not None:
+                return found
+    return None
+
+
+def _bytes_from_kemi_image_or_task_json(
+    body: Dict[str, Any],
+    client: httpx.Client,
+    auth_headers: Dict[str, str],
+) -> Optional[bytes]:
+    if not isinstance(body, dict):
+        return None
+    b = _openai_style_image_data_to_bytes(client, auth_headers, body.get("data") or [])
+    if b:
+        return b
+    nested = _deep_find_openai_image_data_list(body)
+    if nested:
+        b = _openai_style_image_data_to_bytes(client, auth_headers, nested)
+        if b:
+            return b
+    for key in ("image_url", "output_url", "result_url"):
+        v = body.get(key)
+        if isinstance(v, str) and v.startswith("http"):
+            ir = client.get(v, timeout=120.0)
+            ir.raise_for_status()
+            return ir.content
+    return None
+
+
+def _kemi_extract_async_task_id(body: Dict[str, Any]) -> Optional[str]:
+    """从首次 POST 响应中提取异步任务 id（网关文档中的 task_id）。"""
+    tid = body.get("task_id") or body.get("taskId")
+    if isinstance(tid, str) and tid.strip():
+        return tid.strip()
+    return None
+
+
+def _kemi_poll_task_for_image(
+    base: str,
+    task_id: str,
+    model: str,
+    headers: Dict[str, str],
+    client: httpx.Client,
+) -> Dict[str, Any]:
+    deadline = time.time() + float(settings.kemi_tryon_poll_timeout_sec)
+    interval = max(0.5, float(settings.kemi_tryon_poll_interval_sec))
+    params: Dict[str, str] = {"model": model} if model else {}
+    task_url = f"{base.rstrip('/')}/v1/tasks/{task_id}"
+    last: Dict[str, Any] = {}
+    while time.time() < deadline:
+        resp = client.get(task_url, params=params, headers=headers, timeout=90.0)
+        if resp.status_code != 200:
+            raise AIClientError(f"KM 任务查询失败 HTTP {resp.status_code}: {resp.text[:600]}")
+        try:
+            last = resp.json()
+        except Exception:
+            raise AIClientError(f"KM 任务查询返回非 JSON: {resp.text[:400]}")
+        if not isinstance(last, dict):
+            time.sleep(interval)
+            continue
+        img = _bytes_from_kemi_image_or_task_json(last, client, headers)
+        if img:
+            return last
+        status = str(last.get("status") or last.get("state") or last.get("task_status") or "").lower()
+        if status in ("failed", "error", "cancelled", "canceled"):
+            raise AIClientError(f"KM 生图任务失败: {str(last)[:800]}")
+        if status in ("succeeded", "success", "completed", "finished", "done"):
+            # 部分网关先标记成功再延迟写入图片字段，短暂等待后继续轮询
+            time.sleep(min(interval, 1.5))
+            continue
+        time.sleep(interval)
+    raise AIClientTimeoutError(
+        f"KM 生图任务轮询超时（{settings.kemi_tryon_poll_timeout_sec}s），末次: {str(last)[:400]}"
+    )
+
+
+def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) -> Dict:
+    """调用 token.xinhankr.com 兼容的 OpenAI 图像接口：POST /v1/images/generations，可选 GET /v1/tasks/{id}。"""
+    if not settings.kemi_gateway_api_key:
+        raise AIClientError(
+            "未配置 KM 网关 API Key：请在 .env 设置 KEMI_GATEWAY_API_KEY 或 XINHANKR_API_KEY（Bearer sk-...）"
+        )
+    model = (settings.kemi_tryon_image_model or "").strip()
+    if not model:
+        raise AIClientError(
+            "未配置 KEMI_TRYON_IMAGE_MODEL：填写网关支持的生图模型名（POST /v1/images/generations 的 model）"
+        )
+
+    base = settings.kemi_gateway_base_url.rstrip("/")
+    gen_url = f"{base}/v1/images/generations"
+    headers = {
+        "Authorization": f"Bearer {settings.kemi_gateway_api_key}",
+        "Content-Type": "application/json",
+    }
+    image_urls = _kemi_prepare_reference_image_urls(user_photo_url, garment_image_url)
+    payload: Dict[str, Any] = {
+        "model": model,
+        "prompt": settings.kemi_tryon_prompt,
+        "image_urls": image_urls,
+        "n": 1,
+        "response_format": "url",
+    }
+
+    total_timeout = float(settings.kemi_tryon_poll_timeout_sec) + 180.0
+    with httpx.Client(timeout=total_timeout, trust_env=False) as client:
+        logger.info("[KM] POST %s model=%s", gen_url, model)
+        resp = client.post(gen_url, json=payload, headers=headers, timeout=total_timeout)
+        if resp.status_code != 200:
+            raise AIClientError(f"KM 生图接口错误 HTTP {resp.status_code}: {resp.text[:1000]}")
+        try:
+            body = resp.json()
+        except Exception:
+            raise AIClientError(f"KM 生图接口返回非 JSON: {resp.text[:500]}")
+        if not isinstance(body, dict):
+            raise AIClientError(f"KM 生图接口 JSON 格式异常: {type(body)}")
+
+        image_bytes = _bytes_from_kemi_image_or_task_json(body, client, headers)
+        if image_bytes:
+            logger.info("[KM] 已获取试穿结果图，大小=%s 字节", len(image_bytes))
+            return {"image_data": image_bytes}
+
+        task_id = _kemi_extract_async_task_id(body)
+        if task_id:
+            logger.info("[KM] 异步任务 task_id=%s，轮询 GET /v1/tasks/{id}", task_id)
+            final_body = _kemi_poll_task_for_image(base, task_id, model, headers, client)
+            image_bytes = _bytes_from_kemi_image_or_task_json(final_body, client, headers)
+            if image_bytes:
+                logger.info("[KM] 轮询后已获取试穿结果图，大小=%s 字节", len(image_bytes))
+                return {"image_data": image_bytes}
+
+        raise AIClientError(
+            "KM 网关响应中未解析到图片（请确认模型支持 image_urls 参考生图，或检查网关返回结构）: "
+            f"{str(body)[:800]}"
+        )
+
+
 def generate_tryon(user_photo_url: str, garment_image_url: str) -> Dict:
-    """生成虚拟试穿图片（只调用自建云端 Leffa /virtual_tryon 接口）"""
-    # 必须配置自建 Leffa 虚拟试穿服务 URL
-    # 在 .env 中设置：LEFFA_VIRTUAL_TRYON_URL=http://your-server:8000/virtual_tryon
-    return _generate_tryon_custom_leffa(user_photo_url, garment_image_url)
+    """生成虚拟试穿图片（KM 可美 token 网关 OpenAI 协议 /v1/images/generations，不再使用 Leffa）。"""
+    return _generate_tryon_kemi_gateway(user_photo_url, garment_image_url)
 
 
 def _generate_tryon_huggingface(user_photo_url: str, garment_image_url: str) -> Dict:

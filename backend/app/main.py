@@ -40,6 +40,26 @@ def setup_logging():
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
+def _ensure_sqlite_compatibility() -> None:
+    """为旧版 SQLite 数据库做最小兼容修复。"""
+    try:
+        # 仅对 SQLite 做兼容处理，避免影响其他数据库方言
+        if engine.url.get_backend_name() != "sqlite":
+            return
+
+        with engine.begin() as conn:
+            rows = conn.execute(text("PRAGMA table_info(recommendation_records)")).mappings().all()
+            if not rows:
+                return
+
+            columns = {row.get("name") for row in rows}
+            if "confidence" not in columns:
+                conn.execute(text("ALTER TABLE recommendation_records ADD COLUMN confidence FLOAT"))
+                logger.info("数据库兼容修复：已为 recommendation_records 增加 confidence 列")
+    except Exception as exc:
+        logger.warning("数据库兼容修复失败（可忽略并手动迁移）: %s", exc)
+
 # 应用生命周期
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,6 +67,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"启动 {settings.app_name} | 环境: {settings.environment}")
     # 创建数据库表
     Base.metadata.create_all(bind=engine)
+    _ensure_sqlite_compatibility()
     logger.info("数据库表初始化完成")
     yield
     # 关闭时清理
@@ -120,8 +141,10 @@ def detailed_health_check() -> Dict:
         "checks": {
             "database": "unknown",
             "ai_services": {
-                "leffa": "未配置" if not settings.leffa_endpoint else "已配置",
-                "fashionclip": "未配置" if not settings.fashionclip_endpoint else "已配置"
+                "kemi_tryon": "未配置"
+                if not (settings.kemi_gateway_api_key and settings.kemi_tryon_image_model)
+                else "已配置",
+                "fashionclip": "未配置" if not settings.fashionclip_endpoint else "已配置",
             }
         }
     }
