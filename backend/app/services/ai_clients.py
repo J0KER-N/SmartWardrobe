@@ -314,6 +314,19 @@ def _kemi_extract_async_task_id(body: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _kemi_gateway_auth_headers(api_key: str) -> Dict[str, str]:
+    """与 token.xinhankr.com 官网一致：
+    - Authorization: Bearer sk-xxx（通用）
+    - X-Goog-Api-Key: sk-xxx（Google 兼容透传）
+    另在请求中附带 query ?key=sk-xxx（见官网「URL 尾部 ?key=」说明），由下方 params 传入。
+    """
+    key = (api_key or "").strip()
+    return {
+        "Authorization": f"Bearer {key}",
+        "X-Goog-Api-Key": key,
+    }
+
+
 def _kemi_poll_task_for_image(
     base: str,
     task_id: str,
@@ -321,14 +334,24 @@ def _kemi_poll_task_for_image(
     headers: Dict[str, str],
     client: httpx.Client,
 ) -> Dict[str, Any]:
-    deadline = time.time() + float(settings.kemi_tryon_poll_timeout_sec)
-    interval = max(0.5, float(settings.kemi_tryon_poll_interval_sec))
-    params: Dict[str, str] = {"model": model} if model else {}
+    cfg = get_settings()
+    deadline = time.time() + float(cfg.kemi_tryon_poll_timeout_sec)
+    interval = max(0.5, float(cfg.kemi_tryon_poll_interval_sec))
+    params: Dict[str, str] = {}
+    if cfg.kemi_gateway_api_key:
+        params["key"] = cfg.kemi_gateway_api_key
+    if model:
+        params["model"] = model
     task_url = f"{base.rstrip('/')}/v1/tasks/{task_id}"
     last: Dict[str, Any] = {}
     while time.time() < deadline:
         resp = client.get(task_url, params=params, headers=headers, timeout=90.0)
         if resp.status_code != 200:
+            if resp.status_code == 401:
+                raise AIClientError(
+                    "KM 任务查询返回 401：请检查 KEMI_GATEWAY_API_KEY 是否有效并已重启后端。"
+                    f" {resp.text[:400]}"
+                )
             raise AIClientError(f"KM 任务查询失败 HTTP {resp.status_code}: {resp.text[:600]}")
         try:
             last = resp.json()
@@ -349,42 +372,76 @@ def _kemi_poll_task_for_image(
             continue
         time.sleep(interval)
     raise AIClientTimeoutError(
-        f"KM 生图任务轮询超时（{settings.kemi_tryon_poll_timeout_sec}s），末次: {str(last)[:400]}"
+        f"KM 生图任务轮询超时（{cfg.kemi_tryon_poll_timeout_sec}s），末次: {str(last)[:400]}"
     )
 
 
 def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) -> Dict:
-    """调用 token.xinhankr.com 兼容的 OpenAI 图像接口：POST /v1/images/generations，可选 GET /v1/tasks/{id}。"""
-    if not settings.kemi_gateway_api_key:
+    """调用 token.xinhankr.com 图像接口（路径由 KEMI_TRYON_IMAGES_PATH 配置，默认多图参考生图）。"""
+    cfg = get_settings()
+    if not cfg.kemi_gateway_api_key:
         raise AIClientError(
-            "未配置 KM 网关 API Key：请在 .env 设置 KEMI_GATEWAY_API_KEY 或 XINHANKR_API_KEY（Bearer sk-...）"
+            "未配置 KM 网关 API Key：请在 backend/.env 设置 KEMI_GATEWAY_API_KEY 或 XINHANKR_API_KEY（仅填 sk-...，不要带 Bearer 前缀）；"
+            "修改后请重启后端。"
         )
-    model = (settings.kemi_tryon_image_model or "").strip()
+    model = (cfg.kemi_tryon_image_model or "").strip()
     if not model:
         raise AIClientError(
             "未配置 KEMI_TRYON_IMAGE_MODEL：填写网关支持的生图模型名（POST /v1/images/generations 的 model）"
         )
 
-    base = settings.kemi_gateway_base_url.rstrip("/")
-    gen_url = f"{base}/v1/images/generations"
-    headers = {
-        "Authorization": f"Bearer {settings.kemi_gateway_api_key}",
-        "Content-Type": "application/json",
-    }
-    image_urls = _kemi_prepare_reference_image_urls(user_photo_url, garment_image_url)
+    base = cfg.kemi_gateway_base_url.rstrip("/")
+    img_path = cfg.kemi_tryon_images_path
+    gen_url = f"{base}{img_path}"
+    auth = _kemi_gateway_auth_headers(cfg.kemi_gateway_api_key or "")
+    post_headers = {**auth, "Content-Type": "application/json"}
+    subject_image_list = _kemi_prepare_reference_image_urls(user_photo_url, garment_image_url)
     payload: Dict[str, Any] = {
         "model": model,
-        "prompt": settings.kemi_tryon_prompt,
-        "image_urls": image_urls,
-        "n": 1,
-        "response_format": "url",
+        "prompt": cfg.kemi_tryon_prompt,
+        "n": cfg.kemi_tryon_n,
+        "resolution": cfg.kemi_tryon_resolution,
+        "aspect_ratio": cfg.kemi_tryon_aspect_ratio,
+        "subject_image_list": subject_image_list,
     }
+    if cfg.kemi_tryon_negative_prompt:
+        payload["negative_prompt"] = cfg.kemi_tryon_negative_prompt
+    if cfg.kemi_tryon_image_fidelity is not None:
+        payload["image_fidelity"] = cfg.kemi_tryon_image_fidelity
+    if cfg.kemi_tryon_callback_url:
+        payload["callback_url"] = cfg.kemi_tryon_callback_url
 
-    total_timeout = float(settings.kemi_tryon_poll_timeout_sec) + 180.0
+    if "/v1/images/multi-image2image" not in img_path and "/v1/images/omni-image" not in img_path:
+        payload["image_urls"] = subject_image_list
+
+    total_timeout = float(cfg.kemi_tryon_poll_timeout_sec) + 180.0
     with httpx.Client(timeout=total_timeout, trust_env=False) as client:
         logger.info("[KM] POST %s model=%s", gen_url, model)
-        resp = client.post(gen_url, json=payload, headers=headers, timeout=total_timeout)
+        query = {"key": cfg.kemi_gateway_api_key} if cfg.kemi_gateway_api_key else {}
+        resp = client.post(gen_url, params=query, json=payload, headers=post_headers, timeout=total_timeout)
         if resp.status_code != 200:
+            if resp.status_code == 401:
+                raise AIClientError(
+                    "KM 网关返回 401（鉴权失败）：请核对 backend/.env 里 KEMI_GATEWAY_API_KEY 是否为 token 控制台当前有效的 sk- 令牌；"
+                    "若已填 Bearer 前缀请删掉只保留 sk-...；改完后务必重启后端。也可在网关文档用 GET /v1/balance 自测该 Key。"
+                    f" 响应摘要: {resp.text[:400]}"
+                )
+            if resp.status_code == 404:
+                detail = resp.text[:800]
+                try:
+                    err = resp.json()
+                    if isinstance(err, dict):
+                        inner = err.get("error")
+                        if isinstance(inner, dict) and inner.get("message"):
+                            detail = str(inner.get("message"))
+                except Exception:
+                    pass
+                raise AIClientError(
+                    f"KM 网关返回 404：{detail}。"
+                    "这表示当前令牌下没有为该 model 找到可用上游通道。请到 token 控制台核对「有额度、已开通」的试衣/生图模型名，"
+                    "修改 KEMI_TRYON_IMAGE_MODEL；若官方要求走可灵多图接口，可设置 "
+                    "KEMI_TRYON_IMAGES_PATH=/v1/images/multi-image2image（请求体需与官网一致）。"
+                )
             raise AIClientError(f"KM 生图接口错误 HTTP {resp.status_code}: {resp.text[:1000]}")
         try:
             body = resp.json()
@@ -393,7 +450,7 @@ def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) ->
         if not isinstance(body, dict):
             raise AIClientError(f"KM 生图接口 JSON 格式异常: {type(body)}")
 
-        image_bytes = _bytes_from_kemi_image_or_task_json(body, client, headers)
+        image_bytes = _bytes_from_kemi_image_or_task_json(body, client, auth)
         if image_bytes:
             logger.info("[KM] 已获取试穿结果图，大小=%s 字节", len(image_bytes))
             return {"image_data": image_bytes}
@@ -401,20 +458,20 @@ def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) ->
         task_id = _kemi_extract_async_task_id(body)
         if task_id:
             logger.info("[KM] 异步任务 task_id=%s，轮询 GET /v1/tasks/{id}", task_id)
-            final_body = _kemi_poll_task_for_image(base, task_id, model, headers, client)
-            image_bytes = _bytes_from_kemi_image_or_task_json(final_body, client, headers)
+            final_body = _kemi_poll_task_for_image(base, task_id, model, auth, client)
+            image_bytes = _bytes_from_kemi_image_or_task_json(final_body, client, auth)
             if image_bytes:
                 logger.info("[KM] 轮询后已获取试穿结果图，大小=%s 字节", len(image_bytes))
                 return {"image_data": image_bytes}
 
         raise AIClientError(
-            "KM 网关响应中未解析到图片（请确认模型支持 image_urls 参考生图，或检查网关返回结构）: "
+            "KM 网关响应中未解析到图片（请确认模型支持 subject_image_list 参考生图，或检查网关返回结构）: "
             f"{str(body)[:800]}"
         )
 
 
 def generate_tryon(user_photo_url: str, garment_image_url: str) -> Dict:
-    """生成虚拟试穿图片（KM 可美 token 网关 OpenAI 协议 /v1/images/generations，不再使用 Leffa）。"""
+    """生成虚拟试穿图片（KM token 网关；路径与模型见 KEMI_TRYON_IMAGES_PATH、KEMI_TRYON_IMAGE_MODEL）。"""
     return _generate_tryon_kemi_gateway(user_photo_url, garment_image_url)
 
 
@@ -1382,8 +1439,8 @@ def summarize_outfit(garments: List[Dict], weather: Dict) -> str:
             )
         else:
             logger.error(f"百川模型调用失败: {error_str}")
-        # 生成基于衣物的简单描述作为降级方案
-        garment_names = [g.get('name', '') or getattr(g, 'name', '') for g in garments if g]
+        # 生成基于衣物的简单描述作为降级方案（garments 可能为 dict / ORM / GarmentResponse）
+        garment_names = [_get_field(g, "name", "") for g in garments if g]
         if garment_names:
             return f"今日穿搭推荐：{', '.join(garment_names[:3])}的舒适搭配，适合当前天气"
         return "今日穿搭推荐：适合当前天气的舒适搭配"
