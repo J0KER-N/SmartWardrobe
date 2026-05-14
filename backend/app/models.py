@@ -4,6 +4,8 @@ from sqlalchemy.orm import relationship
 
 from .database import Base
 
+from enum import Enum as PyEnum
+
 class User(Base):
     """用户模型"""
     __tablename__ = "users"
@@ -102,3 +104,13 @@ class Feedback(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User")
+
+
+# 兼容旧代码/测试中使用的命名：
+class TryOnStatus(str, PyEnum):
+    pending = "pending"
+    completed = "completed"
+    failed = "failed"
+
+# 旧代码中可能使用了不同大小写的类名，提供别名以避免 ImportError
+TryOnRecord = TryonRecord
