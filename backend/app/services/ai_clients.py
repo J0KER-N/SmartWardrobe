@@ -282,6 +282,29 @@ def _deep_find_openai_image_data_list(obj: Any) -> Optional[List[dict]]:
     return None
 
 
+def _deep_find_media_url(obj: Any) -> Optional[str]:
+    """在嵌套 JSON 中寻找常见的媒体 URL 字段。"""
+    if isinstance(obj, dict):
+        for key in ("video_url", "image_url", "output_url", "result_url", "output_video_url", "result_video_url"):
+            value = obj.get(key)
+            if isinstance(value, str) and value.startswith("http"):
+                return value
+            if isinstance(value, dict):
+                nested_url = value.get("url")
+                if isinstance(nested_url, str) and nested_url.startswith("http"):
+                    return nested_url
+        for value in obj.values():
+            found = _deep_find_media_url(value)
+            if found is not None:
+                return found
+    elif isinstance(obj, list):
+        for item in obj:
+            found = _deep_find_media_url(item)
+            if found is not None:
+                return found
+    return None
+
+
 def _bytes_from_kemi_image_or_task_json(
     body: Dict[str, Any],
     client: httpx.Client,
@@ -297,7 +320,12 @@ def _bytes_from_kemi_image_or_task_json(
         b = _openai_style_image_data_to_bytes(client, auth_headers, nested)
         if b:
             return b
-    for key in ("image_url", "output_url", "result_url"):
+    media_url = _deep_find_media_url(body)
+    if media_url:
+        ir = client.get(media_url, timeout=120.0)
+        ir.raise_for_status()
+        return ir.content
+    for key in ("image_url", "output_url", "result_url", "video_url", "output_video_url", "result_video_url"):
         v = body.get(key)
         if isinstance(v, str) and v.startswith("http"):
             ir = client.get(v, timeout=120.0)
@@ -306,11 +334,37 @@ def _bytes_from_kemi_image_or_task_json(
     return None
 
 
+def _kemi_is_video_tryon_config(model: str, image_path: str) -> bool:
+    path = (image_path or "").lower()
+    model_name = (model or "").lower()
+    return (
+        "seedance" in model_name
+        or "doubao-seedance" in model_name
+        or "/video/" in path
+        or "/contents/generations/tasks" in path
+    )
+
+
+def _kemi_normalize_video_resolution(value: str) -> str:
+    """将 seedance 可接受的分辨率值规范到官方支持的枚举。"""
+    normalized = (value or "").strip().lower()
+    if normalized in {"480p", "720p", "1080p"}:
+        return normalized
+    if normalized in {"1k", "1.0k", "1024", "1024x1024"}:
+        return "720p"
+    return "720p"
+
+
 def _kemi_extract_async_task_id(body: Dict[str, Any]) -> Optional[str]:
     """从首次 POST 响应中提取异步任务 id（网关文档中的 task_id）。"""
-    tid = body.get("task_id") or body.get("taskId")
+    tid = body.get("task_id") or body.get("taskId") or body.get("id")
     if isinstance(tid, str) and tid.strip():
         return tid.strip()
+    data = body.get("data")
+    if isinstance(data, dict):
+        nested_tid = data.get("task_id") or data.get("taskId") or data.get("id")
+        if isinstance(nested_tid, str) and nested_tid.strip():
+            return nested_tid.strip()
     return None
 
 
@@ -329,6 +383,7 @@ def _kemi_gateway_auth_headers(api_key: str) -> Dict[str, str]:
 
 def _kemi_poll_task_for_image(
     base: str,
+    image_path: str,
     task_id: str,
     model: str,
     headers: Dict[str, str],
@@ -342,10 +397,38 @@ def _kemi_poll_task_for_image(
         params["key"] = cfg.kemi_gateway_api_key
     if model:
         params["model"] = model
-    task_url = f"{base.rstrip('/')}/v1/tasks/{task_id}"
+    endpoint = image_path.strip("/").split("/")[-1] if image_path else "multi-image2image"
+    # 支持多种任务查询路径：优先尝试 /api/v3 原生路径，再兼容 /v1 网关查询
+    candidates = []
+    # 火山方舟原生可能使用 /api/v3/contents/generations/tasks/{task_id}
+    candidates.append(f"{base.rstrip('/')}/api/v3/contents/generations/tasks/{task_id}")
+    # 火山方舟原生图片查询（若存在）
+    candidates.append(f"{base.rstrip('/')}/api/v3/images/generations/{task_id}")
+    # 兼容旧网关路径
+    candidates.append(f"{base.rstrip('/')}/v1/images/{endpoint}/{task_id}")
+    candidates.append(f"{base.rstrip('/')}/v1/tasks/{task_id}")
+
     last: Dict[str, Any] = {}
     while time.time() < deadline:
-        resp = client.get(task_url, params=params, headers=headers, timeout=90.0)
+        resp = None
+        # 依次尝试候选 URL，直到任一返回 200
+        for url in candidates:
+            try:
+                resp = client.get(url, params=params, headers=headers, timeout=90.0)
+            except Exception:
+                resp = None
+            if resp is None:
+                continue
+            if resp.status_code == 404:
+                # 尝试下一个候选
+                resp = None
+                continue
+            # 找到非 404 的回应，跳出尝试循环
+            break
+        if resp is None:
+            # 所有候选都未找到，短暂等待并重试
+            time.sleep(interval)
+            continue
         if resp.status_code != 200:
             if resp.status_code == 401:
                 raise AIClientError(
@@ -387,7 +470,7 @@ def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) ->
     model = (cfg.kemi_tryon_image_model or "").strip()
     if not model:
         raise AIClientError(
-            "未配置 KEMI_TRYON_IMAGE_MODEL：填写网关支持的生图模型名（POST /v1/images/generations 的 model）"
+            "未配置 KEMI_TRYON_IMAGE_MODEL：填写网关支持的生图模型名（如多图参考生图接口要求的 model_name）"
         )
 
     base = cfg.kemi_gateway_base_url.rstrip("/")
@@ -396,23 +479,58 @@ def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) ->
     auth = _kemi_gateway_auth_headers(cfg.kemi_gateway_api_key or "")
     post_headers = {**auth, "Content-Type": "application/json"}
     subject_image_list = _kemi_prepare_reference_image_urls(user_photo_url, garment_image_url)
-    payload: Dict[str, Any] = {
-        "model": model,
-        "prompt": cfg.kemi_tryon_prompt,
-        "n": cfg.kemi_tryon_n,
-        "resolution": cfg.kemi_tryon_resolution,
-        "aspect_ratio": cfg.kemi_tryon_aspect_ratio,
-        "subject_image_list": subject_image_list,
-    }
-    if cfg.kemi_tryon_negative_prompt:
-        payload["negative_prompt"] = cfg.kemi_tryon_negative_prompt
-    if cfg.kemi_tryon_image_fidelity is not None:
-        payload["image_fidelity"] = cfg.kemi_tryon_image_fidelity
-    if cfg.kemi_tryon_callback_url:
-        payload["callback_url"] = cfg.kemi_tryon_callback_url
 
-    if "/v1/images/multi-image2image" not in img_path and "/v1/images/omni-image" not in img_path:
-        payload["image_urls"] = subject_image_list
+    # 判断是否使用火山方舟原生路径（/api/v3），该路径支持与 OpenAI 兼容的请求体，
+    # 以及可能的原生 content 数组。优先按 /api/v3 原生格式构造请求。
+    is_api_v3 = (img_path or "").startswith("/api/v3") or "/api/v3/" in (base + img_path)
+    is_multi_image_v1 = "/v1/images/multi-image2image" in img_path or "/v1/images/omni-image" in img_path
+
+    if "/images/generations" in img_path and ("seedance" in model.lower() or "doubao-seedance" in model.lower()):
+        raise AIClientError(
+            f"模型 '{model}' 属于视频生成模型，不支持当前图片生成接口 '{img_path}'。"
+            "虚拟试衣图片请改用图片模型（例如 seedream-5.0-lite），"
+            "如果你要做视频试衣，需要把 KEMI_TRYON_IMAGES_PATH 改为视频任务接口并同步改造返回值处理。"
+        )
+
+    if is_api_v3:
+        # 使用火山方舟原生（与 OpenAI 格式兼容）：将参考图以 image_urls 透传，model 在顶层
+        payload: Dict[str, Any] = {
+            "prompt": cfg.kemi_tryon_prompt,
+            "n": cfg.kemi_tryon_n,
+            "resolution": cfg.kemi_tryon_resolution,
+            "aspect_ratio": cfg.kemi_tryon_aspect_ratio,
+            "image_urls": subject_image_list,
+            "model": model,
+        }
+        # 透传可选控制参数
+        if cfg.kemi_tryon_negative_prompt:
+            payload["negative_prompt"] = cfg.kemi_tryon_negative_prompt
+        if cfg.kemi_tryon_image_fidelity is not None:
+            payload["image_fidelity"] = cfg.kemi_tryon_image_fidelity
+        if cfg.kemi_tryon_callback_url:
+            payload["callback_url"] = cfg.kemi_tryon_callback_url
+    else:
+        # 兼容旧的 /v1 网关（OpenAI 协议或网关自定义字段）
+        payload: Dict[str, Any] = {
+            "prompt": cfg.kemi_tryon_prompt,
+            "n": cfg.kemi_tryon_n,
+            "resolution": cfg.kemi_tryon_resolution,
+            "aspect_ratio": cfg.kemi_tryon_aspect_ratio,
+            "subject_image_list": subject_image_list,
+        }
+        if is_multi_image_v1:
+            payload["model_name"] = model
+        else:
+            payload["model"] = model
+        if cfg.kemi_tryon_negative_prompt:
+            payload["negative_prompt"] = cfg.kemi_tryon_negative_prompt
+        if cfg.kemi_tryon_image_fidelity is not None:
+            payload["image_fidelity"] = cfg.kemi_tryon_image_fidelity
+        if cfg.kemi_tryon_callback_url:
+            payload["callback_url"] = cfg.kemi_tryon_callback_url
+
+        if not is_multi_image_v1:
+            payload["image_urls"] = subject_image_list
 
     total_timeout = float(cfg.kemi_tryon_poll_timeout_sec) + 180.0
     with httpx.Client(timeout=total_timeout, trust_env=False) as client:
@@ -457,8 +575,8 @@ def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) ->
 
         task_id = _kemi_extract_async_task_id(body)
         if task_id:
-            logger.info("[KM] 异步任务 task_id=%s，轮询 GET /v1/tasks/{id}", task_id)
-            final_body = _kemi_poll_task_for_image(base, task_id, model, auth, client)
+            logger.info("[KM] 异步任务 task_id=%s，轮询任务结果接口", task_id)
+            final_body = _kemi_poll_task_for_image(base, img_path, task_id, model, auth, client)
             image_bytes = _bytes_from_kemi_image_or_task_json(final_body, client, auth)
             if image_bytes:
                 logger.info("[KM] 轮询后已获取试穿结果图，大小=%s 字节", len(image_bytes))
@@ -470,8 +588,107 @@ def _generate_tryon_kemi_gateway(user_photo_url: str, garment_image_url: str) ->
         )
 
 
+def _generate_tryon_kemi_gateway_video(user_photo_url: str, garment_image_url: str) -> Dict:
+    """调用 seedance 视频试衣接口，并返回视频二进制。"""
+    cfg = get_settings()
+    if not cfg.kemi_gateway_api_key:
+        raise AIClientError(
+            "未配置 KM 网关 API Key：请在 backend/.env 设置 KEMI_GATEWAY_API_KEY 或 XINHANKR_API_KEY（仅填 sk-...，不要带 Bearer 前缀）；"
+            "修改后请重启后端。"
+        )
+
+    model = (cfg.kemi_tryon_image_model or "").strip()
+    if not model:
+        raise AIClientError("未配置 KEMI_TRYON_IMAGE_MODEL：填写网关支持的视频生成模型名")
+
+    base = cfg.kemi_gateway_base_url.rstrip("/")
+    task_path = cfg.kemi_tryon_images_path
+    gen_url = f"{base}{task_path}"
+    auth = _kemi_gateway_auth_headers(cfg.kemi_gateway_api_key or "")
+    post_headers = {**auth, "Content-Type": "application/json"}
+    subject_image_list = _kemi_prepare_reference_image_urls(user_photo_url, garment_image_url)
+
+    is_v3_content_task = "/api/v3/contents/generations/tasks" in task_path
+
+    if is_v3_content_task:
+        resolution = _kemi_normalize_video_resolution(cfg.kemi_tryon_resolution)
+        payload: Dict[str, Any] = {
+            "model": model,
+            "prompt": cfg.kemi_tryon_prompt,
+            "images": subject_image_list,
+            "resolution": resolution,
+            "duration": cfg.kemi_tryon_duration,
+            "ratio": cfg.kemi_tryon_aspect_ratio,
+        }
+    else:
+        resolution = _kemi_normalize_video_resolution(cfg.kemi_tryon_resolution)
+        payload = {
+            "model": model,
+            "prompt": cfg.kemi_tryon_prompt,
+            "images": subject_image_list,
+            "resolution": resolution,
+            "duration": cfg.kemi_tryon_duration,
+            "ratio": cfg.kemi_tryon_aspect_ratio,
+        }
+
+    if cfg.kemi_tryon_callback_url:
+        payload["callback_url"] = cfg.kemi_tryon_callback_url
+
+    total_timeout = float(cfg.kemi_tryon_poll_timeout_sec) + 180.0
+    with httpx.Client(timeout=total_timeout, trust_env=False) as client:
+        logger.info("[KM] POST %s model=%s (video)", gen_url, model)
+        query = {"key": cfg.kemi_gateway_api_key} if cfg.kemi_gateway_api_key else {}
+        resp = client.post(gen_url, params=query, json=payload, headers=post_headers, timeout=total_timeout)
+        if resp.status_code != 200:
+            if resp.status_code == 401:
+                raise AIClientError(
+                    "KM 网关返回 401（鉴权失败）：请核对 backend/.env 里 KEMI_GATEWAY_API_KEY 是否为 token 控制台当前有效的 sk- 令牌；"
+                    f" 响应摘要: {resp.text[:400]}"
+                )
+            if resp.status_code == 404:
+                detail = resp.text[:800]
+                try:
+                    err = resp.json()
+                    if isinstance(err, dict):
+                        inner = err.get("error")
+                        if isinstance(inner, dict) and inner.get("message"):
+                            detail = str(inner.get("message"))
+                except Exception:
+                    pass
+                raise AIClientError(f"KM 视频任务接口返回 404：{detail}")
+            raise AIClientError(f"KM 视频任务接口错误 HTTP {resp.status_code}: {resp.text[:1000]}")
+        try:
+            body = resp.json()
+        except Exception:
+            raise AIClientError(f"KM 视频任务接口返回非 JSON: {resp.text[:500]}")
+        if not isinstance(body, dict):
+            raise AIClientError(f"KM 视频任务接口 JSON 格式异常: {type(body)}")
+
+        media_bytes = _bytes_from_kemi_image_or_task_json(body, client, auth)
+        if media_bytes:
+            logger.info("[KM] 已获取视频结果，大小=%s 字节", len(media_bytes))
+            return {"video_data": media_bytes}
+
+        task_id = _kemi_extract_async_task_id(body)
+        if task_id:
+            logger.info("[KM] 视频异步任务 task_id=%s，轮询任务结果接口", task_id)
+            final_body = _kemi_poll_task_for_image(base, task_path, task_id, model, auth, client)
+            media_bytes = _bytes_from_kemi_image_or_task_json(final_body, client, auth)
+            if media_bytes:
+                logger.info("[KM] 轮询后已获取视频结果，大小=%s 字节", len(media_bytes))
+                return {"video_data": media_bytes}
+
+        raise AIClientError(
+            "KM 视频任务响应中未解析到视频结果（请确认 seedance 模型和任务路径配置正确，或检查网关返回结构）: "
+            f"{str(body)[:800]}"
+        )
+
+
 def generate_tryon(user_photo_url: str, garment_image_url: str) -> Dict:
     """生成虚拟试穿图片（KM token 网关；路径与模型见 KEMI_TRYON_IMAGES_PATH、KEMI_TRYON_IMAGE_MODEL）。"""
+    cfg = get_settings()
+    if _kemi_is_video_tryon_config(cfg.kemi_tryon_image_model, cfg.kemi_tryon_images_path):
+        return _generate_tryon_kemi_gateway_video(user_photo_url, garment_image_url)
     return _generate_tryon_kemi_gateway(user_photo_url, garment_image_url)
 
 

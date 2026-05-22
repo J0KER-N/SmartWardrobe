@@ -44,7 +44,7 @@ class Settings(BaseModel):
     # 魔搭模型配置（国内可用）
     modelscope_model: Optional[str] = os.getenv("MODELSCOPE_MODEL")  # 魔搭模型ID，例如：damo/cv_unet_virtual-try-on-idm-vton
     modelscope_api_key: Optional[str] = os.getenv("MODELSCOPE_API_KEY")  # 魔搭 API Key
-    # KM 可美 token 网关（新韩 xinhankr）— 虚拟试穿走 OpenAI 协议多图生图接口
+    # KM 可美 token 网关（新韩 xinhankr）— 虚拟试穿可走火山方舟原生图片或视频接口
     kemi_gateway_base_url: str = os.getenv("KEMI_GATEWAY_BASE_URL", "https://token.xinhankr.com").rstrip("/")
     kemi_gateway_api_key: Optional[str] = os.getenv("KEMI_GATEWAY_API_KEY") or os.getenv("XINHANKR_API_KEY")
     kemi_tryon_image_model: str = os.getenv("KEMI_TRYON_IMAGE_MODEL", "")
@@ -53,16 +53,14 @@ class Settings(BaseModel):
         "虚拟试衣：将第一张参考图中的人物穿上第二张参考图展示的服装，保持体态自然、光影一致，高清写实。",
     )
     kemi_tryon_n: int = int(os.getenv("KEMI_TRYON_N", "1"))
-    kemi_tryon_resolution: str = os.getenv("KEMI_TRYON_RESOLUTION", "1k")
+    kemi_tryon_resolution: str = os.getenv("KEMI_TRYON_RESOLUTION", "720p")
     kemi_tryon_aspect_ratio: str = os.getenv("KEMI_TRYON_ASPECT_RATIO", "1:1")
     kemi_tryon_negative_prompt: Optional[str] = os.getenv("KEMI_TRYON_NEGATIVE_PROMPT")
-    kemi_tryon_image_fidelity: Optional[float] = (
-        float(os.getenv("KEMI_TRYON_IMAGE_FIDELITY"))
-        if os.getenv("KEMI_TRYON_IMAGE_FIDELITY") not in (None, "")
-        else None
-    )
+    # 网关文档中 image_fidelity 为字符串参数，保持原样透传
+    kemi_tryon_image_fidelity: Optional[str] = os.getenv("KEMI_TRYON_IMAGE_FIDELITY")
     kemi_tryon_callback_url: Optional[str] = os.getenv("KEMI_TRYON_CALLBACK_URL")
-    kemi_tryon_images_path: str = os.getenv("KEMI_TRYON_IMAGES_PATH", "/v1/images/multi-image2image").strip() or "/v1/images/multi-image2image"
+    kemi_tryon_duration: int = int(os.getenv("KEMI_TRYON_DURATION", "5"))
+    kemi_tryon_images_path: str = os.getenv("KEMI_TRYON_IMAGES_PATH", "/api/v3/images/generations").strip() or "/api/v3/images/generations"
     kemi_tryon_poll_interval_sec: float = float(os.getenv("KEMI_TRYON_POLL_INTERVAL_SEC", "2.0"))
     kemi_tryon_poll_timeout_sec: int = int(os.getenv("KEMI_TRYON_POLL_TIMEOUT_SEC", "300"))
     fashionclip_endpoint: Optional[str] = os.getenv("FASHIONCLIP_ENDPOINT")

@@ -239,6 +239,12 @@
       object-fit: contain;
       background-color: #f5f5f5;
     }
+    .img-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: #f5f5f5;
+    }
     /* 特殊场景使用cover（如轮播图） */
     .img-container.cover img {
       object-fit: cover;
@@ -1923,7 +1929,8 @@
           <h3 class="text-lg font-medium mb-4">试穿效果</h3>
           <div class="bg-gray-100 rounded-lg p-4">
             <div class="img-container mb-3">
-              <img :src="getImageUrl(tryonResult.tryon_image_url)" alt="试穿效果" class="w-full h-auto">
+              <video v-if="isVideoUrl(tryonResult.tryon_image_url)" :src="getImageUrl(tryonResult.tryon_image_url)" controls autoplay loop muted playsinline></video>
+              <img v-else :src="getImageUrl(tryonResult.tryon_image_url)" alt="试穿效果" class="w-full h-auto">
             </div>
             <div class="flex gap-2">
               <button class="van-button van-button--default flex-1" @click="saveTryonResult">保存</button>
@@ -2049,7 +2056,8 @@
           <h3 class="text-lg font-medium mb-3">试穿效果</h3>
           <div class="bg-gray-100 rounded-lg p-4">
             <div class="img-container">
-              <img :src="getImageUrl(currentTryonRecord.tryon_image_url)" alt="试穿效果" class="w-full h-auto">
+              <video v-if="isVideoUrl(currentTryonRecord.tryon_image_url)" :src="getImageUrl(currentTryonRecord.tryon_image_url)" controls autoplay loop muted playsinline></video>
+              <img v-else :src="getImageUrl(currentTryonRecord.tryon_image_url)" alt="试穿效果" class="w-full h-auto">
             </div>
           </div>
         </div>
@@ -3982,6 +3990,12 @@
     const fullUrl = `${apiBaseUrl}${path}`;
     console.log(`图片URL: ${path} -> ${fullUrl}`);
     return fullUrl;
+  },
+
+  isVideoUrl(path) {
+    if (!path) return false;
+    const value = String(path).toLowerCase();
+    return value.endsWith('.mp4') || value.endsWith('.webm') || value.endsWith('.mov');
   },
   
   // 辅助方法：根据值获取选项文本

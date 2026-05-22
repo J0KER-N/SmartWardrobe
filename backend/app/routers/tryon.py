@@ -8,7 +8,7 @@ from ..models import User, Garment, TryonRecord
 from ..schemas import TryonCreate, TryonResponse, BaseResponse
 from ..dependencies import get_current_user
 from ..services.ai_clients import generate_tryon, AIClientError
-from ..services.image_storage import save_tryon_image, save_tryon_user_photo, validate_tryon_image
+from ..services.image_storage import save_tryon_media, save_tryon_user_photo, validate_tryon_image
 
 router = APIRouter(prefix="/tryon", tags=["虚拟试穿"])
 logger = logging.getLogger(__name__)
@@ -52,11 +52,14 @@ def generate_tryon_image(
             garment_image_url=garment.image_url
         )
         
-        # 保存试穿图片（捕获并记录保存失败的详细异常）
+        # 保存试穿媒体（图片或视频）
         try:
-            tryon_image_url = save_tryon_image(tryon_result["image_data"], current_user.id)
+            media_bytes = tryon_result.get("video_data") or tryon_result.get("image_data")
+            if not media_bytes:
+                raise ValueError("AI 返回结果中未包含可保存的媒体数据")
+            tryon_image_url = save_tryon_media(media_bytes, current_user.id)
         except Exception as e:
-            logger.exception("保存试穿图片失败（user_id=%s, garment_id=%s）", current_user.id, garment.id)
+            logger.exception("保存试穿媒体失败（user_id=%s, garment_id=%s）", current_user.id, garment.id)
             # 记录失败状态到数据库
             tryon_record = TryonRecord(
                 owner_id=current_user.id,
@@ -67,7 +70,7 @@ def generate_tryon_image(
             )
             db.add(tryon_record)
             db.commit()
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="试穿图片保存失败")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="试穿媒体保存失败")
         
         # 创建试穿记录
         tryon_record = TryonRecord(

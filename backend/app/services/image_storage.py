@@ -143,22 +143,44 @@ def save_tryon_user_photo(file: UploadFile, user_id: int) -> str:
     else:
         return _save_object_storage(file, user_id, "garments")
 
-def save_tryon_image(image_data: bytes, user_id: int) -> str:
-    """保存试穿图片"""
-    # 模拟图片数据处理（实际需根据AI返回格式调整）
-    file_name = f"{user_id}_{uuid.uuid4().hex}.jpg"
+def _detect_media_extension(media_data: bytes) -> str:
+    """根据内容魔数粗略判断是图片还是视频。"""
+    if media_data.startswith(b"\x89PNG"):
+        return "png"
+    if media_data.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if media_data.startswith(b"GIF8"):
+        return "gif"
+    if media_data[4:8] == b"ftyp" or b"ftyp" in media_data[:32]:
+        return "mp4"
+    return "jpg"
+
+
+def save_tryon_media(media_data: bytes, user_id: int) -> str:
+    """保存试穿媒体，兼容图片或视频结果。"""
+    file_ext = _detect_media_extension(media_data)
+    file_name = f"{user_id}_{uuid.uuid4().hex}.{file_ext}"
     date_dir = datetime.now().strftime("%Y%m")
     save_dir = os.path.join(settings.image_storage_path, "tryon", date_dir)
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, file_name)
     
     try:
-        image = Image.open(BytesIO(image_data))
-        image.save(save_path)
+        if file_ext == "mp4":
+            with open(save_path, "wb") as file:
+                file.write(media_data)
+        else:
+            image = Image.open(BytesIO(media_data))
+            image.save(save_path)
         return f"/uploads/tryon/{date_dir}/{file_name}"
     except Exception as e:
-        logger.error(f"保存试穿图片失败: {str(e)}")
-        raise HTTPException(status_code=500, detail="试穿图片保存失败")
+        logger.error(f"保存试穿媒体失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="试穿媒体保存失败")
+
+
+def save_tryon_image(image_data: bytes, user_id: int) -> str:
+    """保存试穿图片（兼容旧调用）"""
+    return save_tryon_media(image_data, user_id)
 
 
 def _load_image_for_preview(image_url: str) -> Image.Image:
