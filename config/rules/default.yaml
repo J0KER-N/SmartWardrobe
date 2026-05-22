@@ -1,0 +1,16 @@
+rules:
+  - name: "夏日清凉"
+    description: "高温时优先推荐清凉标签的上衣/下装"
+    color: "白"
+    tag: "夏季"
+    weight: 1.5
+
+  - name: "雨天防水"
+    description: "雨天优先防水/雨衣"
+    tag: "防水"
+    weight: 2.0
+
+  - name: "休闲风"
+    description: "匹配用户休闲风格单品"
+    style: "休闲"
+    weight: 1.2

@@ -115,6 +115,8 @@ else:
 
 app.include_router(records.router)
 app.include_router(profile.router)
+from .routers import internal as internal_router
+app.include_router(internal_router.router)
 
 # 配置静态文件服务（用于访问上传的图片）
 if settings.object_storage_type == "local":
