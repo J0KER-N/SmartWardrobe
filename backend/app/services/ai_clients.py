@@ -5,7 +5,7 @@ import time
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 import base64
-
+from ..middleware.retry_middleware import retry_on_ai_failure  # 重试装饰器（Step 3-5 尚未挂载）
 from ..config import get_settings
 
 settings = get_settings()
@@ -57,139 +57,91 @@ async def _async_post_json(
     except httpx.RequestError as e:
         raise AIClientError(f"连接失败: {str(e)}")
 
+@retry_on_ai_failure()
 def _sync_post_json(
     url: str,
     payload: dict,
     headers: Optional[dict] = None,
     timeout: int = 60,
-    max_retries: int = 3,
     use_proxy: bool = False,
+    **kwargs,  # 内部参数（如 _second_pass_mask），不传给 httpx
 ) -> Dict:
-    """同步 POST 请求，带简单重试和错误处理。
-    
+    """同步 POST 请求。
+
     Args:
         url: 请求URL
         payload: 请求体
         headers: 请求头
         timeout: 超时时间（秒）
-        max_retries: 最大重试次数
         use_proxy: 是否使用系统代理（默认False，直接连接）
     """
     if not url:
         raise AIClientError("AI服务地址未配置")
 
     headers = headers or {}
-    last_error: Optional[Exception] = None
 
-    for attempt in range(max_retries):
-        try:
-            # 每次重试适当增加超时时间
-            retry_timeout = timeout * (attempt + 1) if attempt > 0 else timeout
+    # ── Step 4-3：装饰器传来 _second_pass_mask → 启用 AI mask 模式 ──
+    if kwargs.pop("_second_pass_mask", False):
+        payload = {**payload, "mask": True}
+        logger.info("启用 mask 模式的 second-pass 调用")
 
-            # 根据 use_proxy 参数决定是否使用代理
-            # 对于外部API（如百川），可能需要代理；对于本地服务，不使用代理
-            client_kwargs = {
-                "timeout": retry_timeout,
-                "follow_redirects": True,
-                "trust_env": use_proxy  # 如果 use_proxy=True，则信任环境变量中的代理设置
-            }
-            
-            with httpx.Client(**client_kwargs) as client:
-                logger.debug(f"发送请求到 {url} (尝试 {attempt + 1}/{max_retries}, 超时: {retry_timeout}秒, 代理: {use_proxy})")
-                response = client.post(url, json=payload, headers=headers)
+    # 构建 HTTP 客户端参数（超时由装饰器统一管理重试）
+    client_kwargs = {
+        "timeout": timeout,
+        "follow_redirects": True,
+        "trust_env": use_proxy,
+    }
 
-            logger.debug(
-                f"收到响应: 状态码={response.status_code}, "
-                f"Content-Type={response.headers.get('content-type', 'unknown')}"
+    try:
+        with httpx.Client(**client_kwargs) as client:
+            logger.debug(f"发送请求到 {url} (超时: {timeout}秒, 代理: {use_proxy})")
+            response = client.post(url, json=payload, headers=headers)
+
+        logger.debug(
+            f"收到响应: 状态码={response.status_code}, "
+            f"Content-Type={response.headers.get('content-type', 'unknown')}"
+        )
+
+        # 非 200 状态码 → 抛出 HTTPStatusError（后续由重试装饰器接管）
+        response.raise_for_status()
+
+        # 根据 Content-Type 解析响应
+        content_type = response.headers.get("content-type", "")
+        if "application/json" in content_type:
+            result = response.json()
+            logger.debug(f"收到 JSON 响应，大小: {len(str(result))} 字符")
+            return result
+        elif "image" in content_type:
+            logger.info("收到图片响应")
+            return {"image_data": response.content}
+        else:
+            # 尝试解析 JSON，失败则返回原始文本
+            try:
+                return response.json()
+            except Exception:
+                logger.warning(f"无法解析响应为 JSON，Content-Type: {content_type}")
+                return {"raw": response.text[:1000]}
+
+    except httpx.TimeoutException:
+        raise AIClientTimeoutError(f"请求超时（{timeout}秒）")
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        if status_code == 429:
+            raise AIClientRateLimitError("请求频率超限")
+        elif status_code == 400:
+            raise AIClientInvalidRequestError(f"请求参数错误: {e.response.text}")
+        elif status_code == 404:
+            error_text = e.response.text[:500] if e.response.text else "Not Found"
+            logger.error(f"模型或端点不存在 (404): {error_text}")
+            raise AIClientError(
+                f"模型或端点不存在 (404)。请检查模型名称是否正确，"
+                f"或该模型是否支持 Inference API。模型: {getattr(settings, 'huggingface_leffa_model', 'unknown')}, "
+                f"错误: {error_text}"
             )
-
-            # 处理 503（例如模型正在加载）
-            if response.status_code == 503:
-                try:
-                    if response.headers.get("content-type", "").startswith("application/json"):
-                        error_info = response.json()
-                    else:
-                        error_info = {}
-                except Exception:
-                    error_info = {}
-
-                estimated_time = error_info.get("estimated_time", 30)
-                error_msg = error_info.get("error", "模型正在加载")
-                logger.warning(f"API 返回 503: {error_msg}, 预计等待时间: {estimated_time} 秒")
-
-                if attempt < max_retries - 1:
-                    wait_time = min(estimated_time, 60)
-                    logger.info(f"等待 {wait_time} 秒后重试（尝试 {attempt + 1}/{max_retries}）")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    raise AIClientError(
-                        f"模型加载超时，请稍后重试。错误信息: {error_info.get('error', '未知错误')}"
-                    )
-
-            # 非 200 状态码，记录错误内容
-            if response.status_code != 200:
-                error_text = response.text[:500]
-                logger.error(f"API 返回错误状态码 {response.status_code}: {error_text}")
-
-            # 如果状态码是错误，将抛出 HTTPStatusError
-            response.raise_for_status()
-
-            # 根据 Content-Type 解析响应
-            content_type = response.headers.get("content-type", "")
-            if "application/json" in content_type:
-                result = response.json()
-                logger.debug(f"收到 JSON 响应，大小: {len(str(result))} 字符")
-                return result
-            elif "image" in content_type:
-                logger.info("收到图片响应")
-                return {"image_data": response.content}
-            else:
-                # 尝试解析 JSON，失败则返回原始文本
-                try:
-                    return response.json()
-                except Exception:
-                    logger.warning(f"无法解析响应为 JSON，Content-Type: {content_type}")
-                    return {"raw": response.text[:1000]}
-
-        except httpx.TimeoutException:
-            last_error = AIClientTimeoutError(f"请求超时（{retry_timeout}秒）")
-            if attempt < max_retries - 1:
-                logger.warning(f"请求超时，重试中（尝试 {attempt + 1}/{max_retries}）")
-                continue
-            else:
-                raise last_error
-        except httpx.HTTPStatusError as e:
-            status_code = e.response.status_code
-            if status_code == 429:
-                raise AIClientRateLimitError("请求频率超限")
-            elif status_code == 400:
-                raise AIClientInvalidRequestError(f"请求参数错误: {e.response.text}")
-            elif status_code == 404:
-                error_text = e.response.text[:500] if e.response.text else "Not Found"
-                logger.error(f"模型或端点不存在 (404): {error_text}")
-                raise AIClientError(
-                    f"模型或端点不存在 (404)。请检查模型名称是否正确，"
-                    f"或该模型是否支持 Inference API。模型: {getattr(settings, 'huggingface_leffa_model', 'unknown')}, "
-                    f"错误: {error_text}"
-                )
-            else:
-                raise AIClientError(f"服务错误: {status_code} - {e.response.text}")
-        except httpx.RequestError as e:
-            # 连接错误
-            error_str = str(e)
-            if attempt < max_retries - 1:
-                logger.warning(f"连接失败，重试中（尝试 {attempt + 1}/{max_retries}）")
-                time.sleep(2)
-                last_error = AIClientError(f"连接失败: {error_str}")
-                continue
-            else:
-                raise AIClientError(f"连接失败: {error_str}")
-
-    # 如果所有重试都失败
-    if last_error:
-        raise last_error
-    raise AIClientError("请求失败，未知错误")
+        else:
+            raise AIClientError(f"服务错误: {status_code} - {e.response.text}")
+    except httpx.RequestError as e:
+        raise AIClientError(f"连接失败: {str(e)}")
 
 # ------------------------------ 虚拟试穿（KM 可美 token 网关，OpenAI 协议生图） ------------------------------
 def _tryon_resolve_public_image_url(url: str) -> str:
@@ -613,7 +565,6 @@ def _generate_tryon_huggingface(user_photo_url: str, garment_image_url: str) -> 
                 payload=payload,
                 headers=headers,
                 timeout=300,  # 5分钟超时（模型加载和生成可能需要较长时间）
-                max_retries=3  # 最多重试3次
             )
             # 如果成功，跳出循环
             logger.info(f"成功使用端点: {try_url}")
@@ -931,7 +882,6 @@ def _generate_tryon_modelscope(user_photo_url: str, garment_image_url: str) -> D
             payload=payload,
             headers=headers,
             timeout=300,  # 5分钟超时
-            max_retries=3
         )
         
         # 处理魔搭 API 返回的格式

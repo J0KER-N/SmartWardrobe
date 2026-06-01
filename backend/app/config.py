@@ -15,6 +15,7 @@ class Settings(BaseModel):
     # 日志配置
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     log_file: Optional[str] = os.getenv("LOG_FILE")
+    log_format_type: str = os.getenv("LOG_FORMAT_TYPE", "text")  # "text" 或 "json"
     
     # 数据库配置
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./smartwardrobe.db")
@@ -66,6 +67,9 @@ class Settings(BaseModel):
     kemi_tryon_poll_interval_sec: float = float(os.getenv("KEMI_TRYON_POLL_INTERVAL_SEC", "2.0"))
     kemi_tryon_poll_timeout_sec: int = int(os.getenv("KEMI_TRYON_POLL_TIMEOUT_SEC", "300"))
     fashionclip_endpoint: Optional[str] = os.getenv("FASHIONCLIP_ENDPOINT")
+    # KeMi 中介平台 API（当前使用豆包 Seedream 虚拟试穿模型）
+    kemi_api_key: Optional[str] = os.getenv("KEMI_API_KEY")
+    kemi_model: str = os.getenv("KEMI_MODEL", "doubao-seedream-5-0-260128")
     baichuan_api_key: Optional[str] = os.getenv("BAICHUAN_API_KEY")
     baichuan_endpoint: str = os.getenv("BAICHUAN_ENDPOINT", "https://api.baichuan-ai.com/v1/chat/completions")
     # Baichuan 模型配置（可在 .env 中设置具体模型名）
@@ -84,6 +88,15 @@ class Settings(BaseModel):
     # 可选功能开关（用于本地运行时关闭依赖外部AI的功能）
     enable_tryon: bool = os.getenv("ENABLE_TRYON", "False").lower() == "true"
     enable_recommendations: bool = os.getenv("ENABLE_RECOMMENDATIONS", "False").lower() == "true"
+
+    #重试配置
+    ai_max_retries: int = int(os.getenv("AI_MAX_RETRIES", "3"))
+    ai_retry_base_delay: float = float(os.getenv("AI_RETRY_BASE_DELAY", "1.0"))
+    ai_retry_max_delay: float = float(os.getenv("AI_RETRY_MAX_DELAY", "60.0"))
+    ai_retry_backoff_multiplier: float = float(os.getenv("AI_RETRY_BACKOFF_MULTIPLIER", "2.0"))
+    ai_retry_jitter: bool = os.getenv("AI_RETRY_JITTER", "True").lower() == "true"
+
+
 
     @field_validator("jwt_secret_key")
     def validate_jwt_secret(cls, v):
