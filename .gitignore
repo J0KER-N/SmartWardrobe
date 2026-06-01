@@ -1,5 +1,34 @@
-__pycache__/
-*.pyc
-*.pyo
-backend/data/
+# 环境变量（包含 API Key，不能上传）
 .env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# 数据库
+*.db
+*.sqlite3
+
+# 日志
+*.log
+
+# 上传目录
+uploads/
+backend/data/
+
+# IDE
+.vscode/
+.idea/
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 临时测试文件
+verify_stability.py
+_test_*.py
