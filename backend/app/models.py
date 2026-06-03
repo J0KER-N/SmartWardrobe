@@ -114,3 +114,17 @@ class Feedback(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User")
+
+
+class UserFeedback(Base):
+    """用户交互反馈（用于离线重排）"""
+    __tablename__ = "user_feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    item_id = Column(String, nullable=False, index=True)  # 被操作对象的ID（可以是穿搭组合ID或衣物ID）
+    event_type = Column(String, nullable=False)           # like, save, click, view
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    context = Column(JSON, default=dict)                  # 额外上下文（例如推荐场景等）
+
+    user = relationship("User")
