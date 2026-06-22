@@ -1,3 +1,0 @@
-HTTP 200
-Headers: {'date': 'Sat, 27 Dec 2025 09:47:43 GMT', 'server': 'uvicorn', 'content-type': 'image/png', 'transfer-encoding': 'chunked'}
-Saved image to C:\Windows\Temp\resp_preproc.png size=1038
