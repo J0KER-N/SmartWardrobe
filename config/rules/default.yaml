@@ -1,16 +1,85 @@
+﻿# SmartWardrobe 穿搭规则配置
+# ========================================
+# color_compatibility: 颜色兼容矩阵
+#   key: 颜色1:颜色2  → 兼容度 (0=不兼容, 0.5=中性, 1.0=极搭)
+# temperature_zones: 温度区间标签
+# season_tags: 季节映射
+# conflict_rules: 冲突检查规则（用于随机回退过滤）
+
+color_compatibility:
+  "黑色:白色": 0.95
+  "黑色:灰色": 0.85
+  "黑色:红色": 0.80
+  "黑色:蓝色": 0.75
+  "白色:灰色": 0.85
+  "白色:蓝色": 0.80
+  "白色:红色": 0.85
+  "白色:黑色": 0.95
+  "蓝色:白色": 0.80
+  "蓝色:灰色": 0.75
+  "蓝色:黑色": 0.75
+  "蓝色:牛仔": 0.80
+  "红色:黑色": 0.80
+  "红色:白色": 0.85
+  "红色:灰色": 0.70
+  "灰色:白色": 0.85
+  "灰色:黑色": 0.85
+  "灰色:蓝色": 0.75
+
+temperature_zones:
+  - min: -10
+    max: 10
+    label: "严寒"
+    suggestions: ["羽绒服", "厚外套", "毛衣", "围巾"]
+  - min: 10
+    max: 15
+    label: "寒冷"
+    suggestions: ["大衣", "夹克", "毛衣", "长裤"]
+  - min: 15
+    max: 20
+    label: "凉爽"
+    suggestions: ["薄外套", "长袖", "长裤"]
+  - min: 20
+    max: 25
+    label: "舒适"
+    suggestions: ["短袖", "衬衫", "薄长裤"]
+  - min: 25
+    max: 30
+    label: "温暖"
+    suggestions: ["短袖", "短裤", "裙子"]
+  - min: 30
+    max: 50
+    label: "炎热"
+    suggestions: ["短袖", "短裤", "防晒衣"]
+
+season_tags:
+  spring: ["春季", "薄款", "长袖"]
+  summer: ["夏季", "短袖", "清凉", "防晒"]
+  autumn: ["秋季", "薄款", "长袖"]
+  winter: ["冬季", "保暖", "厚款", "羽绒"]
+
+conflict_rules:
+  # 不能同时穿的品类组合
+  category_conflicts:
+    - ["外套", "外套"]
+    - ["长裤", "短裤"]
+    - ["长裤", "裙子"]
+    - ["上衣", "上衣"]
+  # 季节不兼容
+  season_conflicts:
+    - ["夏季", "冬季"]
+    - ["夏季", "羽绒"]
+    - ["冬季", "短袖"]
+
 rules:
-  - name: "夏日清凉"
-    description: "高温时优先推荐清凉标签的上衣/下装"
-    color: "白"
-    tag: "夏季"
+  - name: "颜色搭配"
+    description: "基于颜色兼容矩阵的搭配推荐"
+    weight: 1.0
+
+  - name: "温度适配"
+    description: "根据当前温度推荐合适的衣物"
     weight: 1.5
 
-  - name: "雨天防水"
-    description: "雨天优先防水/雨衣"
-    tag: "防水"
-    weight: 2.0
-
-  - name: "休闲风"
-    description: "匹配用户休闲风格单品"
-    style: "休闲"
-    weight: 1.2
+  - name: "季节协调"
+    description: "确保推荐衣物的季节协调"
+    weight: 0.8

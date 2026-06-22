@@ -2,13 +2,22 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form, File, Uploa
 import logging
 from sqlalchemy.orm import Session
 from typing import Dict
+from io import BytesIO
+
+import httpx
+from PIL import Image
 
 from ..database import get_db
 from ..models import User, Garment, TryonRecord
 from ..schemas import TryonCreate, TryonResponse, BaseResponse
 from ..dependencies import get_current_user
 from ..services.ai_clients import generate_tryon, AIClientError
-from ..services.image_storage import save_tryon_media, save_tryon_user_photo, validate_tryon_image
+from ..services.image_storage import (
+    resolve_uploaded_image_path,
+    save_tryon_media,
+    save_tryon_user_photo,
+    validate_tryon_image,
+)
 
 router = APIRouter(prefix="/tryon", tags=["虚拟试穿"])
 logger = logging.getLogger(__name__)
@@ -57,7 +66,24 @@ def generate_tryon_image(
             media_bytes = tryon_result.get("video_data") or tryon_result.get("image_data")
             if not media_bytes:
                 raise ValueError("AI 返回结果中未包含可保存的媒体数据")
-            tryon_image_url = save_tryon_media(media_bytes, current_user.id)
+
+            target_size = None
+            if resolved_user_photo_url:
+                try:
+                    if resolved_user_photo_url.startswith("/uploads/"):
+                        local_path = resolve_uploaded_image_path(resolved_user_photo_url)
+                        with Image.open(local_path) as uploaded_image:
+                            target_size = uploaded_image.size
+                    elif resolved_user_photo_url.startswith("http"):
+                        with httpx.Client(timeout=30.0) as client:
+                            response = client.get(resolved_user_photo_url, timeout=30.0)
+                            response.raise_for_status()
+                            with Image.open(BytesIO(response.content)) as uploaded_image:
+                                target_size = uploaded_image.size
+                except Exception as warn_e:
+                    logger.warning("无法读取用户照片尺寸，将使用默认输出尺寸: %s", warn_e)
+
+            tryon_image_url = save_tryon_media(media_bytes, current_user.id, target_size=target_size)
         except Exception as e:
             logger.exception("保存试穿媒体失败（user_id=%s, garment_id=%s）", current_user.id, garment.id)
             # 记录失败状态到数据库

@@ -1,5 +1,33 @@
-__pycache__/
+﻿__pycache__/
 *.pyc
 *.pyo
+*.pyc
 backend/data/
 .env
+
+# 数据库文件
+*.db
+
+# 上传文件
+uploads/
+
+# 日志
+*.log
+*.log.*
+
+# 构建产物
+.venv/
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

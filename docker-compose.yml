@@ -1,0 +1,65 @@
+﻿version: "3.9"
+
+# ========================================================
+# SmartWardrobe 一键部署
+# ========================================================
+# 默认使用 SQLite（开发模式），适用于单机测试。
+# 生产环境建议取消注释 PostgreSQL 部分并更新 DATABASE_URL。
+# ========================================================
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartwardrobe-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # 持久化 SQLite 数据库
+      - ./backend/smartwardrobe.db:/app/backend/smartwardrobe.db
+      # 持久化上传文件
+      - ./backend/uploads:/app/backend/uploads
+      # 持久化指标数据
+      - ./backend/data:/app/backend/data
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - DATABASE_URL=sqlite:///./backend/smartwardrobe.db
+      # ── 敏感值通过环境变量注入 ──
+      # - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      # - KEMI_GATEWAY_API_KEY=${KEMI_GATEWAY_API_KEY}
+      # - BAICHUAN_API_KEY=${BAICHUAN_API_KEY}
+      # - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - ENABLE_TRYON=false
+      - ENABLE_RECOMMENDATIONS=false
+    restart: unless-stopped
+    # ── PostgreSQL (取消注释启用) ──
+    # depends_on:
+    #   - postgres
+    #   - redis
+
+  # ── PostgreSQL （生产环境） ──
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: smartwardrobe-postgres
+  #   environment:
+  #     POSTGRES_DB: smartwardrobe
+  #     POSTGRES_USER: smartwardrobe
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+  # ── Redis 缓存（可选） ──
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: smartwardrobe-redis
+  #   ports:
+  #     - "6379:6379"
+  #   restart: unless-stopped
+
+# volumes:
+#   pgdata:

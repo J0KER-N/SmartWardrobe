@@ -2,7 +2,7 @@ import os
 import uuid
 import logging
 from datetime import datetime
-from PIL import Image
+from PIL import Image, ImageOps
 from io import BytesIO
 from fastapi import UploadFile, HTTPException
 import httpx
@@ -79,11 +79,13 @@ def compress_image(image: Image, quality: int = 85) -> Image:
     return image
 
 # 本地存储核心函数
-def _save_local(file: UploadFile, user_id: int, sub_dir: str) -> str:
+def _save_local(file: UploadFile, user_id: int, sub_dir: str, force_jpeg: bool = False) -> str:
     """本地存储图片"""
     # 生成唯一文件名
     # 从文件名或content_type获取扩展名
-    if file.filename:
+    if force_jpeg:
+        file_ext = "jpg"
+    elif file.filename:
         file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
     else:
         # 从content_type推断扩展名
@@ -103,9 +105,14 @@ def _save_local(file: UploadFile, user_id: int, sub_dir: str) -> str:
         file.file.seek(0)
         # 读取并压缩图片
         image = Image.open(file.file)
+        if force_jpeg and image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
         compressed_image = compress_image(image, settings.image_quality)
         # 保存图片
-        compressed_image.save(save_path, quality=settings.image_quality)
+        if force_jpeg:
+            compressed_image.save(save_path, format="JPEG", quality=settings.image_quality)
+        else:
+            compressed_image.save(save_path, quality=settings.image_quality)
         # 返回访问URL（本地路径转URL）
         return f"/uploads/{sub_dir}/{date_dir}/{file_name}"
     except Exception as e:
@@ -135,13 +142,13 @@ def save_avatar(file: UploadFile, user_id: int) -> str:
         return _save_object_storage(file, user_id, "avatars")
 
 def save_tryon_user_photo(file: UploadFile, user_id: int) -> str:
-    """保存试衣用户照片（使用更大的大小限制）"""
+    """保存试衣用户照片（使用更大的大小限制），并统一为 JPEG 格式。"""
     logger.info(f"保存试衣用户照片，文件大小限制: {settings.tryon_image_max_size/1024/1024}MB")
     validate_tryon_image(file)
     if settings.object_storage_type == "local":
-        return _save_local(file, user_id, "garments")  # 试衣用户照片也保存在garments目录
+        return _save_local(file, user_id, "tryon", force_jpeg=True)
     else:
-        return _save_object_storage(file, user_id, "garments")
+        return _save_object_storage(file, user_id, "tryon")
 
 def _detect_media_extension(media_data: bytes) -> str:
     """根据内容魔数粗略判断是图片还是视频。"""
@@ -156,22 +163,42 @@ def _detect_media_extension(media_data: bytes) -> str:
     return "jpg"
 
 
-def save_tryon_media(media_data: bytes, user_id: int) -> str:
-    """保存试穿媒体，兼容图片或视频结果。"""
+def save_tryon_media(media_data: bytes, user_id: int, target_size: tuple[int, int] | None = None) -> str:
+    """保存试穿媒体，兼容图片或视频结果。统一试穿图片为 JPEG 并可调整到目标尺寸。"""
     file_ext = _detect_media_extension(media_data)
-    file_name = f"{user_id}_{uuid.uuid4().hex}.{file_ext}"
     date_dir = datetime.now().strftime("%Y%m")
     save_dir = os.path.join(settings.image_storage_path, "tryon", date_dir)
     os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, file_name)
-    
+
     try:
         if file_ext == "mp4":
+            file_name = f"{user_id}_{uuid.uuid4().hex}.mp4"
+            save_path = os.path.join(save_dir, file_name)
             with open(save_path, "wb") as file:
                 file.write(media_data)
         else:
             image = Image.open(BytesIO(media_data))
-            image.save(save_path)
+            if target_size is not None:
+                image = image.convert("RGB")
+                orig_width, orig_height = image.size
+                target_width, target_height = target_size
+                scale = min(target_width / orig_width, target_height / orig_height)
+                resized = image.resize(
+                    (max(1, int(orig_width * scale)), max(1, int(orig_height * scale))),
+                    Image.LANCZOS,
+                )
+                canvas = Image.new("RGB", target_size, (255, 255, 255))
+                offset_x = (target_width - resized.width) // 2
+                offset_y = (target_height - resized.height) // 2
+                canvas.paste(resized, (offset_x, offset_y))
+                image = canvas
+            compressed_image = compress_image(image, settings.image_quality)
+            if compressed_image.mode in ("RGBA", "P"):
+                compressed_image = compressed_image.convert("RGB")
+            file_name = f"{user_id}_{uuid.uuid4().hex}.jpg"
+            save_path = os.path.join(save_dir, file_name)
+            compressed_image.save(save_path, format="JPEG", quality=settings.image_quality)
+
         return f"/uploads/tryon/{date_dir}/{file_name}"
     except Exception as e:
         logger.error(f"保存试穿媒体失败: {str(e)}")
@@ -181,6 +208,14 @@ def save_tryon_media(media_data: bytes, user_id: int) -> str:
 def save_tryon_image(image_data: bytes, user_id: int) -> str:
     """保存试穿图片（兼容旧调用）"""
     return save_tryon_media(image_data, user_id)
+
+
+def resolve_uploaded_image_path(image_url: str) -> str:
+    """将本地上传 URL 转换为后端存储路径。"""
+    if image_url.startswith("/uploads/"):
+        relative_path = image_url.replace("/uploads/", "", 1)
+        return os.path.join(settings.image_storage_path, relative_path)
+    raise ValueError("仅支持本地 /uploads/ 路径转换")
 
 
 def _load_image_for_preview(image_url: str) -> Image.Image:

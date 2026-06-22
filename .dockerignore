@@ -1,0 +1,35 @@
+﻿# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+*.egg
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── 数据 ──
+*.db
+data/
+uploads/avatars/
+uploads/garments/
+uploads/tryon/
+uploads/recommendations/
+
+# ── 日志 ──
+*.log
+*.log.*
+
+# ── Git ──
+.git/
+.gitignore
+.gitattributes
+
+# ── Docker ──
+Dockerfile
+docker-compose.yml

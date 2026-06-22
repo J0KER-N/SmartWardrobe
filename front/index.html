@@ -245,6 +245,17 @@
       object-fit: contain;
       background-color: #f5f5f5;
     }
+    .img-container.fixed-tryon {
+      width: 100%;
+      min-height: 320px;
+      height: 320px;
+    }
+    .img-container.fixed-tryon img,
+    .img-container.fixed-tryon video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
     /* 特殊场景使用cover（如轮播图） */
     .img-container.cover img {
       object-fit: cover;
@@ -1899,7 +1910,7 @@
         
         <div class="mb-6">
           <h3 class="text-lg font-medium mb-4">上传您的照片</h3>
-          <div class="bg-gray-100 rounded-lg p-4 text-center" @click="triggerUserPhotoUpload" style="cursor: pointer; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+          <div class="bg-gray-100 rounded-lg p-4 text-center" @click="triggerUserPhotoUpload" style="cursor: pointer; min-height: 320px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <input 
               type="file" 
               ref="userPhotoInput" 
@@ -1907,7 +1918,9 @@
               @change="handleUserPhotoSelect" 
               style="display: none;"
             >
-            <img v-if="tryonUserPhoto" :src="tryonUserPhoto" alt="用户照片" class="w-full h-auto max-h-64 object-contain mb-2">
+            <div v-if="tryonUserPhoto" class="img-container fixed-tryon mb-2">
+              <img :src="tryonUserPhoto" alt="用户照片" class="w-full h-full object-contain">
+            </div>
             <div v-else class="text-gray-400">
               <i class="van-icon van-icon-photo-o text-4xl mb-2"></i>
               <p class="text-sm">点击上传照片</p>
@@ -1928,9 +1941,9 @@
         <div v-if="tryonResult" class="mt-6">
           <h3 class="text-lg font-medium mb-4">试穿效果</h3>
           <div class="bg-gray-100 rounded-lg p-4">
-            <div class="img-container mb-3">
+            <div class="img-container fixed-tryon mb-3">
               <video v-if="isVideoUrl(tryonResult.tryon_image_url)" :src="getImageUrl(tryonResult.tryon_image_url)" controls autoplay loop muted playsinline></video>
-              <img v-else :src="getImageUrl(tryonResult.tryon_image_url)" alt="试穿效果" class="w-full h-auto">
+              <img v-else :src="getImageUrl(tryonResult.tryon_image_url)" alt="试穿效果" class="w-full h-full object-contain">
             </div>
             <div class="flex gap-2">
               <button class="van-button van-button--default flex-1" @click="saveTryonResult">保存</button>
@@ -2031,8 +2044,8 @@
         <div class="mb-6">
           <h3 class="text-lg font-medium mb-3">原图像</h3>
           <div class="bg-gray-100 rounded-lg p-4">
-            <div class="img-container">
-              <img :src="getImageUrl(currentTryonRecord.user_photo_url)" alt="用户照片" class="w-full h-auto">
+            <div class="img-container fixed-tryon">
+              <img :src="getImageUrl(currentTryonRecord.user_photo_url)" alt="用户照片" class="w-full h-full object-contain">
             </div>
           </div>
         </div>
@@ -2055,9 +2068,9 @@
         <div class="mb-6">
           <h3 class="text-lg font-medium mb-3">试穿效果</h3>
           <div class="bg-gray-100 rounded-lg p-4">
-            <div class="img-container">
+            <div class="img-container fixed-tryon">
               <video v-if="isVideoUrl(currentTryonRecord.tryon_image_url)" :src="getImageUrl(currentTryonRecord.tryon_image_url)" controls autoplay loop muted playsinline></video>
-              <img v-else :src="getImageUrl(currentTryonRecord.tryon_image_url)" alt="试穿效果" class="w-full h-auto">
+              <img v-else :src="getImageUrl(currentTryonRecord.tryon_image_url)" alt="试穿效果" class="w-full h-full object-contain">
             </div>
           </div>
         </div>
