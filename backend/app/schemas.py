@@ -4,6 +4,22 @@ from pydantic import BaseModel, Field, validator
 import re
 
 # ------------------------------ 基础模型 ------------------------------
+class UserFeedbackCreate(BaseModel):
+    user_id: int
+    item_id: str
+    event_type: str = Field(..., description="like, save, click, view")
+    context: Optional[Dict[str, Any]] = None
+
+class UserFeedbackResponse(BaseModel):
+    id: int
+    user_id: int
+    item_id: str
+    event_type: str
+    timestamp: datetime
+    context: Optional[Dict[str, Any]] = None
+
+    model_config = {"from_attributes": True}
+
 class BaseResponse(BaseModel):
     """基础响应模型"""
     success: bool = True
